@@ -1,9 +1,6 @@
 import numpy as np
 
 
-
-
-
 def rgb2luminance(img:np.ndarray):
     if len(img.shape) == 2:
         return img

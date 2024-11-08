@@ -149,7 +149,8 @@ def preprocess(img:np.ndarray, proc_type:str, **args) -> np.ndarray:
     raise Exception(f" 'proc_type={proc_type}' is not implemented. Check the code for its supported preprocessing type. ")
 
 
-def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float, nb_neighbor:int, direction:str, is_jpeg:bool, max_period_tested:int=-1):
+def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float,
+                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1):
     """_summary_
 
     Parameters
@@ -166,7 +167,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float, nb_nei
         _description_
     is_jpeg : bool
         _description_
-    max_period_tested : int, optional
+    max_period : int, optional
         _description_, by default -1
 
     Returns
@@ -180,7 +181,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float, nb_nei
     assert len(img_in.shape) == 2
 
     # step 1: preprocessing
-    img = preprocess(img, proc_type=preproc)
+    img = preprocess(img_in, proc_type=preproc)
 
     # step 2: compute the correlations of patch pairs
 
@@ -193,26 +194,27 @@ def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float, nb_nei
 
     if max_period == -1: # if not defined
         max_period = nb_periods // 2 + nb_neighbor + 1
+    print(f"max_period: {max_period}")
 
     corr_periods = []
     if direction == "horizontal":
-        img = np.array(img_in.T)
+        img = np.array(img.T)
     else:
-        img = img_in
+        img = img
 
     corr_periods = compute_corr_periods(img, window_ratio, max_period) # period in [0, max_period]
 
     # step 3: find out the abnormal correlations at certain periods
     nb_windows = corr_periods.shape[1]
 
-    mask_valid_period = np.ones(max_period_tested, dtype=bool)
+    mask_valid_period = np.ones(max_period+1, dtype=bool)
     mask_valid_period[0] = False
     if is_jpeg:
         for i in range(1, 8):
             period = int(np.round(i / 8 * nb_periods))
 
             # assume the size is multiple of 8
-            if period < max_period_tested:
+            if period < max_period:
                 mask_valid_period[period-2] = False
                 mask_valid_period[period-1] = False
                 mask_valid_period[period] = False
@@ -228,10 +230,10 @@ def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float, nb_nei
     peak_counts_valid[:(nb_neighbor+1)] = 0
     peak_counts_valid[-(nb_neighbor+1):] = 0
 
-    peak_counts = np.zeros(max_period_tested + 1)
+    peak_counts = np.zeros(max_period + 1)
     peak_counts[mask_valid_period] = peak_counts_valid
 
-    nfa_binom = np.zeros(max_period_tested + 1) + nb_periods  # include period=0
+    nfa_binom = np.zeros(max_period + 1) + nb_periods  # include period=0
 
     for period, count in enumerate(peak_counts):
         p_value = scipy.stats.binom.sf(count, nb_windows, 1/(nb_neighbor*2+1))

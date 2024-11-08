@@ -163,9 +163,9 @@ def main_experiment_classification(ratio:float, bidirect:bool):
     # ratio = 1.3
     interp = "bicubic"
     jpeg_q1 = -1
-    jpeg_q2 = 95
+    jpeg_q2 = 90
 
-    input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
 
     if jpeg_q2 == -1:
         fname_list = glob.glob(os.path.join(input_folder, "*.png"))
@@ -288,5 +288,5 @@ if __name__ == "__main__":
     # ratio = float(sys.argv[1])
 
     for ratio in np.arange(0.6, 1.6+1e-5, 0.1):
-        main_experiment_classification(ratio, bidirect=True)
+        main_experiment_classification(ratio, bidirect=False)
         # main_experiment_estimation(ratio)
