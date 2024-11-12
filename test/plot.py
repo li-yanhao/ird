@@ -69,9 +69,33 @@ csv_list_image_size = {
     300: glob.glob("raw_result/impact_size/impact_size_300_resa_ratio_*.csv"),
     400: glob.glob("raw_result/impact_size/impact_size_400_resa_ratio_*.csv"),
     500: glob.glob("raw_result/impact_size/impact_size_500_resa_ratio_*.csv"),
+    600: glob.glob("raw_result/impact_size/impact_size_600_resa_ratio_*.csv"),
+    # 600: glob.glob("raw_result/impact_size_600_resa_ratio_*.csv"), # debug
+    # 600: glob.glob("raw_result/compare/impact_size_600_resa_ratio_*.csv"), # debug
     700: glob.glob("raw_result/impact_size/impact_size_700_resa_ratio_*.csv"),
     800: glob.glob("raw_result/impact_size/impact_size_800_resa_ratio_*.csv"),
 }
+
+
+csv_list_preprocess = {
+    -1: {
+
+    },
+    95: {
+        "none": glob.glob("raw_result/impact_preprocess/q_95/impact_preprocess_none_q_95_resa_ratio_*.csv"),
+        "phot": glob.glob("raw_result/impact_preprocess/q_95/impact_preprocess_phot_q_95_resa_ratio_*.csv"),
+        "dct": glob.glob("raw_result/impact_preprocess/q_95/impact_preprocess_dct_q_95_resa_ratio_*.csv"),
+        "tv": glob.glob("raw_result/impact_preprocess/q_95/impact_preprocess_tv_q_95_resa_ratio_*.csv"),
+        "rt": glob.glob("raw_result/impact_preprocess/q_95/impact_preprocess_rt_q_95_resa_ratio_*.csv")
+    },
+    90: {
+        "none": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_none_q_90_resa_ratio_*.csv"),
+        "phot": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_phot_q_90_resa_ratio_*.csv"),
+        "dct": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_dct_q_90_resa_ratio_*.csv"),
+        "tv": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_tv_q_90_resa_ratio_*.csv"),
+        "rt": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_rt_q_90_resa_ratio_*.csv")
+    }
+}  # jpeg_quality -> preprocess_type
 
 
 def print_info(*text):
@@ -295,7 +319,8 @@ def load_ird(csv_fname_list, do_nms_jpeg:bool): # ours
 
     for e in recall_list: print(e)
 
-    scores = np.stack(scores)
+    # scores = np.stack(scores)
+    scores = np.array(scores, dtype=object)
     print()
 
     return ratios, scores
@@ -526,7 +551,111 @@ def plot_ablation_interpolator():
     plt.show()
 
 
+
+def plot_ablation_preprocess(q:int):
+    preprocess_list = ["none", "phot", "dct", "tv", "rt"]
+    fpr = 0.01
+    if q > 0:
+        do_nms_jpeg = True
+    else:
+        do_nms_jpeg = False
+
+    for preprocess in preprocess_list:
+        print_info(f"preprocess: {preprocess}")
+        ratios, scores_ratios = load_ird(csv_fname_list=csv_list_preprocess[q][preprocess], do_nms_jpeg=do_nms_jpeg)
+        scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
+        scores_original = np.sort(scores_original)
+        threshold = scores_original[-int(fpr * len(scores_original))]
+
+        if q <= 0:
+            ratio_valid_mask = np.abs(ratios - 1) > 1e-5
+        else:
+            ratio_valid_mask = np.logical_and.reduce((
+                np.abs(ratios - 1) > 1e-5,
+                np.abs(ratios - 0.8) > 1e-5,
+                np.abs(ratios - 1.6) > 1e-5
+            ))  
+
+        # if q <= 0:
+        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+        
+        ratios_valid = ratios[ratio_valid_mask]
+        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+
+        acc_list = np.zeros(len(ratios_valid))
+        print()
+        print("threshold:", threshold)
+        for i, ratio in enumerate(ratios_valid):
+            if q <= 0 and (abs(ratio - 1) < 1e-5):
+                acc_list[i] = 0
+                continue
+            if q > 0 and (abs(ratio - 1) < 1e-5 or abs(ratio - 0.8) < 1e-5 or abs(ratio - 1.6) < 1e-5):
+                acc_list[i] = 0
+                continue
+            scores_one_ratio = scores_ratios_valid[i]
+            acc = (scores_one_ratio > threshold).mean()
+            acc_list[i] = acc
+            print(f"resa_ratio={ratio:.2f}, acc={acc}")
+        acc_list = np.array(acc_list)
+
+        # ratios_to_plot = ratios[~np.isnan(acc_list)]
+        # acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
+        plt.plot(ratios_valid, acc_list * 100, marker="o", label=f"{preprocess}")
+    
+    plt.legend()
+    plt.xlabel("Resampling factor")
+    plt.ylabel("Accuracy (%)")
+    plt.xticks(ratios)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_ablation_size():
+    # size_list = [300, 400, 500, 600, 700, 800]
+    size_list = [600]
+    fpr = 0.01
+    for size in size_list:
+        print_info(f"size: {size}")
+        ratios, scores_ratios = load_ird(csv_fname_list=csv_list_image_size[size], do_nms_jpeg=False)
+        scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
+        scores_original = np.sort(scores_original)
+        threshold = scores_original[-int(fpr * len(scores_original))]
+
+        ratio_valid_mask = np.abs(ratios - 1) > 1e-5
+        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+        
+        ratios_valid = ratios[ratio_valid_mask]
+        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+
+        acc_list = np.zeros(len(ratios_valid))
+        print()
+        print("threshold:", threshold)
+        for i, ratio in enumerate(ratios_valid):
+            if (abs(ratio - 1) < 1e-5):
+                acc_list[i] = 0
+                continue
+            scores_one_ratio = scores_ratios_valid[i]
+            acc = (scores_one_ratio > threshold).mean()
+            acc_list[i] = acc
+            print(f"resa_ratio={ratio:.2f}, acc={acc}")
+        acc_list = np.array(acc_list)
+
+        # ratios_to_plot = ratios[~np.isnan(acc_list)]
+        # acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
+        plt.plot(ratios_valid, acc_list * 100, marker="o", label=f"{size}x{size}")
+    
+    plt.legend()
+    plt.xlabel("Resampling factor")
+    plt.ylabel("Accuracy (%)")
+    plt.xticks(ratios)
+    plt.tight_layout()
+    plt.show()
+    pass
+
+
 if __name__ == "__main__":
-    print_accuracies()
+    # print_accuracies()
     # plot_roc_curves_comparison(q=-1)
     # plot_ablation_interpolator()
+    # plot_ablation_preprocess(q=95)
+    plot_ablation_size()

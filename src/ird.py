@@ -75,12 +75,12 @@ def _bool_lateral_maxima(data, axis=0, order=1, exclude_range=0, lateral='both',
     return results
 
 
-def preprocess(img:np.ndarray, proc_type:str, **args) -> np.ndarray:
+def preprocess(img:np.ndarray, proc_type:str, proc_param:dict) -> np.ndarray:
     if proc_type == None or proc_type.lower() == "none":
         return img
 
     if proc_type == "2nd":
-        dir = args["dir"]
+        dir = proc_param["dir"]
         if dir == "horizontal":
             img = filters.derivative(img, order=2)
         elif dir == "vertical":
@@ -88,26 +88,35 @@ def preprocess(img:np.ndarray, proc_type:str, **args) -> np.ndarray:
         else:
             raise Exception(f"Variable `dir` must be 'vertical' or 'horizontal', got '{dir}' instead.")
 
+    if proc_type == "phot":
+        img = filters.phase_transform(img)
+        return img
+
     if proc_type == "dct":
-        assert 'sigma' in args.keys(), f"DCT denoising filter must be companied with parameter 'sigma=...' "
-        sigma = args["sigma"]
+        assert 'sigma' in proc_param.keys(), f"DCT denoising filter must be companied with parameter 'sigma=...' "
+        sigma = proc_param["sigma"]
         img = filters.dct_extract_noise(img, sigma, block_sz=16)
+        # img = filters.dct_extract_noise(img, 6, block_sz=16)
         return img
 
     if proc_type == "dct_8x8":    
         img = filters.dct_extract_noise_8x8(img, 6)
+        return img
 
     if proc_type == "tv":
         img = filters.tv_extract_noise(img, lmda=1)
+        return img
 
     if proc_type == "dncnn":
         dncnn = filters.DnCNN()
         img = dncnn.extract_noise(img)
         h, w = img.shape[0:2]
         img = img[:h - h%8, :w - w%8]
+        return img
 
     if proc_type == "rt":
-        img = filters.rank_transform(img, sz=1)
+        # print("rt_size", proc_param["rt_size"])
+        img = filters.rank_transform(img, sz=proc_param["rt_size"])
         return img
 
     if proc_type == "rt_v2":
@@ -149,15 +158,17 @@ def preprocess(img:np.ndarray, proc_type:str, **args) -> np.ndarray:
     raise Exception(f" 'proc_type={proc_type}' is not implemented. Check the code for its supported preprocessing type. ")
 
 
-def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float,
-                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1):
+def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_ratio:float,
+                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1, **kargs):
     """_summary_
 
     Parameters
     ----------
     img_in : np.ndarray
-        one channel image, in shape (h, w)
+        _description_
     preproc : str
+        _description_
+    preproc_param : _type_
         _description_
     window_ratio : float
         _description_
@@ -181,20 +192,19 @@ def detect_resampling(img_in:np.ndarray, preproc:str, window_ratio:float,
     assert len(img_in.shape) == 2
 
     # step 1: preprocessing
-    img = preprocess(img_in, proc_type=preproc)
+    img = preprocess(img_in, proc_type=preproc, proc_param=preproc_param)
 
     # step 2: compute the correlations of patch pairs
 
-    h, w = img_in.shape
+    h, w = img.shape
 
-    if direction == "vertical":
-        nb_periods = h
-    else:
+    if direction == "horizontal":
         nb_periods = w
+    else:
+        nb_periods = h
 
     if max_period == -1: # if not defined
         max_period = nb_periods // 2 + nb_neighbor + 1
-    print(f"max_period: {max_period}")
 
     corr_periods = []
     if direction == "horizontal":

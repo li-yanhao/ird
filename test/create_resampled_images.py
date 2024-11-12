@@ -28,14 +28,14 @@ def center_crop(img:np.ndarray, crop_size:int) -> np.ndarray:
     return img[y1:y2, x1:x2]
 
 
-def ups_2d(x, z=None, size=None, mode='bicubic'):
+def ups_2d(x, z=None, size=None, mode='bicubic', antialias=False):
     assert z is not None or size is not None
 
     x = torch.from_numpy(x)[None, None, ...]
     if size is not None:
-        x = torch.nn.functional.interpolate(x, size=size, mode=mode, antialias=False)
+        x = torch.nn.functional.interpolate(x, size=size, mode=mode, antialias=antialias)
     else:
-        x = torch.nn.functional.interpolate(x, scale_factor=z, mode=mode, antialias=False)
+        x = torch.nn.functional.interpolate(x, scale_factor=z, mode=mode, antialias=antialias)
     x = x[0,0,:,:].cpu().numpy()
     return x
 
@@ -94,15 +94,47 @@ def augment_jpeg(img:np.ndarray, quality:int=-1) -> np.ndarray:
     return img
 
 
+def create_one_resampled_image(fname:str, downsample_by_2:bool, ratio, interp, q1, q2, target_size):
+    img = cv2.imread(fname)[:,:,::-1] 
+    if downsample_by_2:
+        img = img[::2, ::2, :]
+
+    img = rgb2luminance(img) # gray channel
+
+    # JPEG before resampling
+    img = augment_jpeg(img, quality=q1)
+    # img = img.round() # this line should be removed
+    
+    # JPEG after resampling
+    # img = augment_jpeg(img, quality=jpeg_q2)
+    if abs(ratio - 1) > 1e-5:
+        if interp == "lanczos":
+            # img_resa = ups_pil(img, z=ratio, mode=interp)
+            img_resa = ups_opencv(img, z=ratio, mode=interp)
+        else:
+            img_resa = ups_2d(img, z=ratio, mode=interp)
+        # img = ups_pil(img, z=ratio, mode=interp)
+    else:
+        img_resa = np.array(img)
+    img_resa = center_crop(img_resa, target_size)
+
+    img_resa = augment_jpeg(img_resa, quality=q2)
+
+    img_resa = np.clip(np.round(img_resa), 0, 255)
+
+    return img_resa
+
+
 def create_resampled_images():
-    RUCHE = True
-    MAC = False
+    RUCHE = False
+    MAC = True
 
     if RUCHE:
         raw_img_folder = "/gpfs/workdir/liy/datasets/raise"
         downsample_by_2 = True
 
     elif MAC:
+        # raw_img_folder = "/Volumes/HPP900/data/raise_cropped"
         raw_img_folder = "/Volumes/HPP900/data/raise_cropped"
         downsample_by_2 = False
 
@@ -119,19 +151,22 @@ def create_resampled_images():
         # output_root = "/Volumes/HPP900/data/resample_detection"
         output_root = "/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/"
 
-    target_size = 800
-    # ratios = np.arange(0.6, 2.0+1e-10, 0.1)
+    target_size = 600
     ratios = np.arange(0.6, 2.0+1e-10, 0.1)
+    # ratios = np.arange(0.6, 2.0+1e-10, 0.1)
+    # ratios = [0.95, 0.97, 0.98, 0.99, 1.01, 1.02, 1.03, 1.05]
     # ratios = [1]
-    # interp = "lanczos"
-    interp = "bicubic"
-    # interp = "bilinear"
     # interp = "nearest"
+    # interp = "bilinear"
+    # interp = "bicubic"
+    interp = "lanczos"
     jpeg_q1 = -1
     jpeg_q2 = -1
 
+    antialias = False
 
-    pool = ThreadPoolPlus(workers=40)
+
+    pool = ThreadPoolPlus(workers=4)
 
     # for fname, orig_size, resa_size, interp, window_ratio, nb_neighbor, jpeg in exp_param_list:
         # img = skimage.io.imread(fname, as_gray=True)
@@ -151,7 +186,7 @@ def create_resampled_images():
         
         # JPEG before resampling
         img = augment_jpeg(img, quality=jpeg_q1)
-        img = img.round()
+        # img = img.round()
         
         # JPEG after resampling
         # img = augment_jpeg(img, quality=jpeg_q2)
@@ -161,7 +196,7 @@ def create_resampled_images():
                     # img_resa = ups_pil(img, z=ratio, mode=interp)
                     img_resa = ups_opencv(img, z=ratio, mode=interp)
                 else:
-                    img_resa = ups_2d(img, z=ratio, mode=interp)
+                    img_resa = ups_2d(img, z=ratio, mode=interp, antialias=antialias)
                 # img = ups_pil(img, z=ratio, mode=interp)
             else:
                 img_resa = np.array(img)

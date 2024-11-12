@@ -38,6 +38,7 @@ import sys
 sys.path.append("../src")
 from ird import detect_resampling
 from misc import rgb2luminance
+from create_resampled_images import create_one_resampled_image
 
 # from corr_helper import detect_resampling
 
@@ -292,6 +293,8 @@ class ExpConfig:
     sigma:float
     rt_size:int
     data_on_the_fly:bool
+    downsample_by_2:bool
+    # raw_data_folder:str
     split_validation:bool
     val_range:int
     preprocess:str
@@ -369,25 +372,29 @@ def cross_validate(nfa_0:np.ndarray, nfa_1:np.ndarray, rg:int):
 
 def process_one_image(cfg:ExpConfig):
     nfa_binom = None
-    # if cfg.data_on_the_fly:
-    #     ### Option: online processing ###
-    #     img = skimage.io.imread(cfg.fname)
-    #     # img = cv2.imread(cfg.fname)[:,:,::-1]
-    #     img = rgb2luminance(img)
-    #     # JPEG before resampling
-    #     img = augment_jpeg(img, quality=cfg.jpeg_q1)
-    #     if abs(cfg.resa_ratio - 1) > 1e-5:
-    #         # img = ups_2d(img, size=int(cfg.orig_size*cfg.resa_ratio), mode=cfg.interp)
-    #         img = ups_2d(img, z=cfg.resa_ratio, mode=cfg.interp)
-    #     img = img.round()
-    #     img = center_crop(img, cfg.target_size)
-    #     # resampling
-    #     # JPEG after resampling
-    #     img = augment_jpeg(img, quality=cfg.jpeg_q2)
-    #     ### END of Option ###
-    # else:
-        # img = skimage.io.imread(cfg.fname).astype(float)
-        # assert img.shape == (cfg.target_size, cfg.target_size)
+    if cfg.data_on_the_fly:
+
+        img = create_one_resampled_image(cfg.fname, downsample_by_2=cfg.downsample_by_2, ratio=cfg.resa_ratio, interp=cfg.interp, q1=cfg.jpeg_q1, q2=cfg.jpeg_q2, target_size=cfg.target_size).astype(float)
+
+        # ### Option: online processing ###
+        # img = skimage.io.imread(cfg.fname)
+        # # img = cv2.imread(cfg.fname)[:,:,::-1]
+        # img = rgb2luminance(img)
+        # # JPEG before resampling
+        # img = augment_jpeg(img, quality=cfg.jpeg_q1)
+        # if abs(cfg.resa_ratio - 1) > 1e-5:
+        #     # img = ups_2d(img, size=int(cfg.orig_size*cfg.resa_ratio), mode=cfg.interp)
+        #     img = ups_2d(img, z=cfg.resa_ratio, mode=cfg.interp)
+        # img = img.round()
+        # img = center_crop(img, cfg.target_size)
+        # # resampling
+        # # JPEG after resampling
+        # img = augment_jpeg(img, quality=cfg.jpeg_q2)
+        # ### END of Option ###
+    else:
+        img = skimage.io.imread(cfg.fname).astype(float)
+
+    assert img.shape == (cfg.target_size, cfg.target_size)
 
 
     # unicode = str(abs(hash(cfg)) % (10 ** 8))  # avoid conflict for different input images
@@ -400,7 +407,7 @@ def process_one_image(cfg:ExpConfig):
         # img = dct_denoise(img, sigma=cfg.sigma, block_sz=16)
     
 
-    img = skimage.io.imread(cfg.fname).astype(float)
+    # img = skimage.io.imread(cfg.fname).astype(float)
     if img.shape != (cfg.target_size, cfg.target_size):
         print_error(f"WARNING: {cfg.fname} is not in shape {(cfg.target_size, cfg.target_size):} !")
         return cfg, nfa_binom
@@ -410,9 +417,16 @@ def process_one_image(cfg:ExpConfig):
     else:
         is_jpeg = False
 
+    if cfg.preprocess == "dct":
+        preproc_param = {"sigma": cfg.sigma}
+    elif cfg.preprocess == "rt":
+        preproc_param = {"rt_size": cfg.rt_size}
+    else:
+        preproc_param = None
+    
     if cfg.direction in ["horizontal", "vertical"]:
         nfa_binom = detect_resampling(
-            img, preproc=cfg.preprocess, window_ratio=cfg.window_ratio, 
+            img, preproc=cfg.preprocess, preproc_param=preproc_param, window_ratio=cfg.window_ratio, 
             nb_neighbor=cfg.nb_neighbor, direction=cfg.direction, is_jpeg=is_jpeg)
     elif cfg.direction == "both":
         nfa_binom_h = detect_resampling(
@@ -428,8 +442,7 @@ def process_one_image(cfg:ExpConfig):
     return cfg, nfa_binom
 
 
-# use offline data for test
-def experiment_offline_data(config_fname:str, resa_ratio:float):
+def main_experiment(config_fname:str, resa_ratio:float):
     # load yaml setting
     with open(config_fname, 'r') as file:
         config = yaml.safe_load(file)
@@ -457,6 +470,8 @@ def experiment_offline_data(config_fname:str, resa_ratio:float):
     sigma = config["denoise_sigma"]
     rt_size = config["rt_size"]
     data_on_the_fly = config["data_on_the_fly"]
+    downsample_by_2 = config["downsample_by_2"]
+
     split_validation = config["split_validation"]
     val_range = config["val_range"]
 
@@ -464,21 +479,37 @@ def experiment_offline_data(config_fname:str, resa_ratio:float):
 
     exp_config_list = []
 
-    for interp in interp_list:
-        for target_size in target_size_list:
-            input_folder = os.path.join(config["data_path"], f"target_size_{target_size}/r_{resa_ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}")
-
-            if jpeg_q2 == -1 or data_on_the_fly:
-                fname_list = glob.glob(os.path.join(input_folder, "*.png"))
-            else:
-                fname_list = glob.glob(os.path.join(input_folder, "*.jpg"))
-
+    if ~data_on_the_fly:
+        for interp in interp_list:
+            for target_size in target_size_list:
+                input_folder = os.path.join(config["data_path"], f"target_size_{target_size}/r_{resa_ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}")
+                if jpeg_q2 == -1:
+                    fname_list = glob.glob(os.path.join(input_folder, "*.png"))
+                else:
+                    fname_list = glob.glob(os.path.join(input_folder, "*.jpg"))
             fname_list.sort()
+
             for fname in fname_list:
                 cfg = ExpConfig(fname=fname, target_size=target_size, resa_ratio=resa_ratio,
-                                interp=interp, jpeg_q1=jpeg_q1, jpeg_q2=jpeg_q2, window_ratio=window_ratio, nb_neighbor=nb_neighbor, direction=direction, sigma=sigma, rt_size=rt_size, data_on_the_fly=data_on_the_fly, split_validation=split_validation, val_range=val_range, preprocess=preprocess)
+                                interp=interp, jpeg_q1=jpeg_q1, jpeg_q2=jpeg_q2, window_ratio=window_ratio, nb_neighbor=nb_neighbor, direction=direction, sigma=sigma, rt_size=rt_size, 
+                                data_on_the_fly=data_on_the_fly, downsample_by_2=downsample_by_2,
+                                split_validation=split_validation, val_range=val_range, preprocess=preprocess)
                 exp_config_list.append(cfg)
+    
+    if data_on_the_fly:
+        input_folder = config["data_path"]
+        fname_list = glob.glob(os.path.join(input_folder, "*.png"))
+        fname_list.sort()
 
+        for fname in fname_list:
+            for interp in interp_list:
+                for target_size in target_size_list:
+                    cfg = ExpConfig(fname=fname, target_size=target_size, resa_ratio=resa_ratio,
+                                    interp=interp, jpeg_q1=jpeg_q1, jpeg_q2=jpeg_q2, window_ratio=window_ratio, nb_neighbor=nb_neighbor, direction=direction, sigma=sigma, rt_size=rt_size, 
+                                    data_on_the_fly=data_on_the_fly, downsample_by_2=downsample_by_2,
+                                    split_validation=split_validation, val_range=val_range, preprocess=preprocess)
+                    exp_config_list.append(cfg)
+    print(len(exp_config_list))
 
     # prepare data collection
     df_data = {}
@@ -491,7 +522,7 @@ def experiment_offline_data(config_fname:str, resa_ratio:float):
 
     if not torch.cuda.is_available():  # cpu
         if "macOS" in platform.platform():
-            num_workers = 2
+            num_workers = 1
         elif "node" in platform.node():
             num_workers = 20
         elif "ruche-mem" in platform.node():
@@ -601,9 +632,15 @@ if __name__ == "__main__":
     config_file = args.config
 
     if args.r == -1:
-        ratios = np.arange(0.6, 2.0+1e-5, 0.1)
+        # ratios = np.arange(0.6, 2.0+1e-5, 0.1)
+        ratios = np.concatenate([
+            np.arange(1.2, 2.0+1e-5, 0.1), 
+            # np.array([0.91, 0.92, 0.93, 0.94, 0.95, 0.96]),
+            # np.array([1.04, 1.05, 1.06, 1.07, 1.08, 1.09]),
+            ])
     else:
         ratios = [args.r]
 
     for resa_ratio in ratios:
-        experiment_offline_data(config_file, resa_ratio=resa_ratio)
+        main_experiment(config_file, resa_ratio=resa_ratio)
+

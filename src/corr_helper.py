@@ -67,8 +67,8 @@ class CorrHelper(object):
         self.uf_expand_int = torch.from_numpy(uf_expand_int).to(self.dev)
         self.uf2_expand_int = torch.from_numpy(uf2_expand_int).to(self.dev)
 
-        self.lr = int(window_ratio * h)
-        self.lc = int(window_ratio * w)
+        self.lr = round(window_ratio * h)
+        self.lc = round(window_ratio * w)
 
         offsets = []
 
@@ -114,7 +114,7 @@ class CorrHelper(object):
         self.sum_prod_12_arr_periods = {}
         periods = np.arange(1, max_period + 1)
 
-        for period in periods:  # todo: add period=0
+        for period in periods:
             top = period % self.h
             bot = self.num_blob_r * self.lr + top
             uf_cropped_conj_2 = self.uf_expand_conj[top:bot, : ]
