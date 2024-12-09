@@ -156,16 +156,36 @@ def cross_validate(sal_0:np.ndarray, sal_1:np.ndarray, rg:int):
 
 
 
-def main_experiment_classification(ratio:float, bidirect:bool):
+def main_experiment_classification(ratio:float, bidirect:bool, antialias:int):
+    """_summary_
+
+    Parameters
+    ----------
+    ratio : float
+        _description_
+    bidirect : bool
+        _description_
+    antialias : int
+        0: no anti-aliasing
+        1: anti-aliasing with Gaussian blur
+        2: anti-aliasing by matlab
+    """
+
     num_neighbor = 15
 
     target_size = 600
     # ratio = 1.3
     interp = "bicubic"
     jpeg_q1 = -1
-    jpeg_q2 = 90
+    jpeg_q2 = -1
 
-    input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    if antialias == 0:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 1:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 2:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/ird/test/data/resample_detection/matlab/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+
 
     if jpeg_q2 == -1:
         fname_list = glob.glob(os.path.join(input_folder, "*.png"))
@@ -220,11 +240,18 @@ def main_experiment_classification(ratio:float, bidirect:bool):
 
     np.set_printoptions(precision=3)
 
-    if bidirect:
-        output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_bidirect_resa_ratio_{ratio:.2f}.csv"
-    else:
+    if antialias == 0:
         output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 1:
+        output_fname = f"results_antialias/birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_antialias_gaussian_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 2:
+        output_fname = f"results_antialias/birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_antialias_matlab_resa_ratio_{ratio:.2f}.csv"
+
+    # if bidirect:
+    #     output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_bidirect_resa_ratio_{ratio:.2f}.csv"
     df.to_csv(output_fname, index=False, float_format='%4.2f')
+
+    print(f"Saved results at {output_fname}")
 
 
 def main_experiment_estimation(ratio:float):
@@ -287,6 +314,8 @@ if __name__ == "__main__":
     # print(sys.argv)
     # ratio = float(sys.argv[1])
 
-    for ratio in np.arange(0.6, 1.6+1e-5, 0.1):
-        main_experiment_classification(ratio, bidirect=False)
+    antialias = True
+
+    for ratio in np.arange(0.6, 1.0+1e-5, 0.05):
+        main_experiment_classification(ratio, bidirect=False, antialias=1)
         # main_experiment_estimation(ratio)

@@ -1,9 +1,11 @@
-# plot roc for jpeg images
+# This script is for plotting tables and figures for experiment part.
+
 
 import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from sklearn.metrics import roc_curve, roc_auc_score
 
@@ -27,7 +29,9 @@ csv_list_uncompressed = {
 
     "qiao": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/reimpl/qiao/target_600_q1_-1_q2_-1.csv"),
 
-    "ird": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/integration/output/1k_impact_proprocess_rt_7x7_correct/*.csv")
+    "ird": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/integration/output/1k_impact_proprocess_rt_7x7_correct/*.csv"),
+
+    "ird_cv": glob.glob("raw_result/impact_preprocess_rt_cv/impact_preprocess_rt_cv_q_-1_resa_ratio_*.csv")
 }
 
 csv_list_q95 = {
@@ -55,25 +59,64 @@ csv_list_q90 = {
 
     "qiao": glob.glob("reimpl/qiao/target_600_q1_-1_q2_90.csv"),
 
-    "ird": glob.glob("raw_result/1k_impact_proprocess_q1_-1_q2_90_tv/*csv")
+    "ird": glob.glob("raw_result/1k_impact_proprocess_q1_-1_q2_90_tv/*csv"),
+
+    "ird_cv": glob.glob("raw_result/impact_preprocess_rt_cv/impact_preprocess_rt_cv_q_90_resa_ratio_*.csv")
 }
 
 csv_list_interp = {
-    "nearest": glob.glob("raw_result/impact_interpolator/impact_interpolator_nearest_*.csv") ,
+    "nearest":  glob.glob("raw_result/impact_interpolator/impact_interpolator_nearest_*.csv") ,
     "bilinear": glob.glob("raw_result/impact_interpolator/impact_interpolator_bilinear_*.csv") ,
-    "bicubic": glob.glob("raw_result/impact_interpolator/impact_interpolator_bicubic_*.csv") ,
-    "lanczos": glob.glob("raw_result/impact_interpolator/impact_interpolator_lanczos_*.csv") ,
+    "bicubic":  glob.glob("raw_result/impact_interpolator/impact_interpolator_bicubic_*.csv") ,
+    "lanczos":  glob.glob("raw_result/impact_interpolator/impact_interpolator_lanczos_*.csv") ,
 }
 
 csv_list_image_size = {
     300: glob.glob("raw_result/impact_size/impact_size_300_resa_ratio_*.csv"),
     400: glob.glob("raw_result/impact_size/impact_size_400_resa_ratio_*.csv"),
     500: glob.glob("raw_result/impact_size/impact_size_500_resa_ratio_*.csv"),
-    600: glob.glob("raw_result/impact_size/impact_size_600_resa_ratio_*.csv"),
+    # 600: glob.glob("raw_result/impact_size/impact_size_600_resa_ratio_*.csv"),
     # 600: glob.glob("raw_result/impact_size_600_resa_ratio_*.csv"), # debug
-    # 600: glob.glob("raw_result/compare/impact_size_600_resa_ratio_*.csv"), # debug
+    600: glob.glob("raw_result/impact_interpolator/impact_interpolator_bicubic_*"), # debug
     700: glob.glob("raw_result/impact_size/impact_size_700_resa_ratio_*.csv"),
     800: glob.glob("raw_result/impact_size/impact_size_800_resa_ratio_*.csv"),
+}
+
+csv_list_interp_antialias = {
+    "bilinear": glob.glob("raw_result/impact_antialias/impact_antialias_bilinear_resa_ratio_*.csv"),
+    "bicubic": glob.glob("raw_result/impact_antialias/impact_antialias_bicubic_resa_ratio_*.csv"),
+    "lanczos": glob.glob("raw_result/impact_antialias/impact_antialias_lanczos_resa_ratio_*.csv"),
+}
+
+csv_list_interp_antialias_matlab = {
+    "bilinear": glob.glob("raw_result/impact_antialias_matlab/impact_antialias_matlab_bilinear_resa_ratio_*.csv"),
+    "bicubic": glob.glob("raw_result/impact_antialias_matlab/impact_antialias_matlab_bicubic_resa_ratio_*.csv"),
+    "lanczos": glob.glob("raw_result/impact_antialias_matlab/impact_antialias_matlab_lanczos_resa_ratio_*.csv"),
+}
+
+csv_list_compare_antialias_gaussian = {
+    "qiao": glob.glob("reimpl/qiao/target_600_antialias_gaussian_q1_-1_q2_-1.csv"),
+    "mahdian": glob.glob("reimpl/mahdian/mahdian_antialias_gaussian_jpeg_q1_-1_q2_-1_resa_ratio_*.csv"),
+    "gallagher": glob.glob("reimpl/gallagher/gallagher_antialias_gaussian_jpeg_q1_-1_q2_-1_resa_ratio_*csv"),
+
+    "popescu": glob.glob("reimpl/popescu/popescu_antialias_jpeg_q1_-1_q2_-1_ratio_*.csv"),
+
+    "birajdar": glob.glob("reimpl/birajdar/results_antialias/birajdar_jpeg_q1_-1_q2_-1_antialias_gaussian_resa_ratio_*.csv"),
+    "ird": glob.glob("raw_result/impact_antialias/impact_antialias_bicubic_resa_ratio_*.csv"),
+    "ird_cv": glob.glob("raw_result/impact_antialias/impact_antialias_bicubic_cv_resa_ratio_*.csv"),
+}
+
+
+csv_list_compare_antialias_matlab = {
+    "qiao": glob.glob("reimpl/qiao/target_600_antialias_matlab_q1_-1_q2_-1.csv"),
+    "mahdian": glob.glob("reimpl/mahdian/results/mahdian_antialias_matlab_jpeg_q1_-1_q2_-1_resa_ratio/*csv"),
+    "gallagher": glob.glob("reimpl/gallagher/gallagher_antialias_matlab_jpeg_q1_-1_q2_-1_resa_ratio_*csv"),
+
+    "popescu": glob.glob("reimpl/popescu/popescu_matlab_jpeg_q1_-1_q2_-1_ratio_*.csv"),
+    "birajdar": glob.glob("reimpl/birajdar/results_antialias/birajdar_jpeg_q1_-1_q2_-1_antialias_matlab_resa_ratio_*.csv"),
+
+    "ird": glob.glob("raw_result/impact_antialias_matlab/impact_antialias_matlab_bicubic_resa_ratio_*.csv"),
+    "ird_cv": glob.glob("raw_result/impact_antialias_matlab/impact_antialias_matlab_bicubic_cv_resa_ratio_*.csv"),
 }
 
 
@@ -96,6 +139,8 @@ csv_list_preprocess = {
         "rt": glob.glob("raw_result/impact_preprocess/q_90/impact_preprocess_rt_q_90_resa_ratio_*.csv")
     }
 }  # jpeg_quality -> preprocess_type
+
+
 
 
 def print_info(*text):
@@ -123,7 +168,9 @@ def _load_compared_method(csv_fname_list, method, metric_name):
 
     recall_list = []
     scores = []
-    ratios = np.arange(0.6, 1.6+1e-10, 0.1)
+    ratios = df["resa_ratio"].unique()
+    ratios = np.sort(ratios)
+    # ratios = np.arange(0.6, 1.6+1e-10, 0.1)
     for resa_ratio in ratios:
         df_resampled = df.query(f'abs(resa_ratio - {resa_ratio}) < 1e-5')
         scores_one_ratio = np.array(df_resampled[metric_name])
@@ -248,6 +295,8 @@ def filter_by_nms(nfa_histos, threshold, anchor_periods, nms_min_range:int=2):
             mask_jpeg[entry_img, p_left+1:anchor_period+1] = True 
             while p_left >= 0 and positive_mask[entry_img, p_left] == True:
                 mask_jpeg[entry_img, p_left] = True
+                print("fname of suppression: entry_img=", entry_img)
+                print(f"nfa[{p_left}]=", nfa_histos[entry_img, p_left])
                 p_left -= 1
             
             p_right = anchor_period + nms_min_range + 1
@@ -269,9 +318,11 @@ def load_ird(csv_fname_list, do_nms_jpeg:bool): # ours
         df = pd.read_csv(csv_fname)
         df_list.append(df)
     df =  pd.concat(df_list)
+    print(df)
 
     df_original = df.query(f'abs(resa_ratio - 1.0) < 1e-5')
     nfa_histos = np.vstack(df_original['nfa'].apply(lambda x: np.fromstring(x[1:-1], dtype=float, sep=" ")))
+    # print(df_original.iloc[959]["fname"])
 
     fpr = 0.01
 
@@ -281,7 +332,7 @@ def load_ird(csv_fname_list, do_nms_jpeg:bool): # ours
     current_size = df["target_size"].values[0]
     print("current_size:", current_size)
     max_period = nfa_histos.shape[1]
-    
+
     if do_nms_jpeg:
         print_info("initial threshold:", threshold)
         jpeg_periods = np.arange(round(current_size / 8), max_period, round(current_size / 8))
@@ -424,7 +475,7 @@ def print_accuracies():
 
     # load_birajdar(csv_list_uncompressed["birajdar"])
     # load_birajdar(csv_list_q95["birajdar"])
-    load_birajdar(csv_list_q90["birajdar"])
+    # load_birajdar(csv_list_q90["birajdar"])
 
     # load_gallagher(csv_list_uncompressed["gallagher"])
     # load_gallagher(csv_list_q95["gallagher"])
@@ -443,12 +494,12 @@ def print_accuracies():
     # load_popescu(csv_list_q90["popescu"])
 
     # load_ird(csv_list_uncompressed["ird"], do_nms_jpeg=False)  # ok
-    # load_ird(csv_list_q95["ird"], do_nms_jpeg=True)  # ok
+    load_ird(csv_list_q95["ird"], do_nms_jpeg=True)  # ok
     # load_ird(csv_list_q90["ird"], do_nms_jpeg=True)  # ok
 
 
 
-def plot_roc_curves_comparison(q:int):
+def plot_roc_curves_comparison(q:int, antialias:int):
     """_summary_
 
     Parameters
@@ -466,14 +517,40 @@ def plot_roc_curves_comparison(q:int):
         csv_list = csv_list_q90
         do_nms_jpeg = True
 
-    method_scores = {
-        "Qiao": load_qiao(csv_list["qiao"]),
-        "Mahdian": load_mahdian(csv_list["mahdian"]),
-        "Gallagher": load_gallagher(csv_list["gallagher"]), 
-        "Birajdar": load_birajdar(csv_list["birajdar"]), 
-        "Popescu": load_popescu(csv_list["popescu"]),
-        "Ours": load_ird(csv_list["ird"], do_nms_jpeg),
-    }
+
+    if antialias == 0:
+        method_scores = {
+            "Qiao": load_qiao(csv_list["qiao"]),
+            "Mahdian": load_mahdian(csv_list["mahdian"]),
+            "Gallagher": load_gallagher(csv_list["gallagher"]), 
+            "Birajdar": load_birajdar(csv_list["birajdar"]), 
+            "Popescu": load_popescu(csv_list["popescu"]),
+            "Ours": load_ird(csv_list["ird"], do_nms_jpeg),
+            "Ours, c.v.": load_ird(csv_list["ird_cv"], do_nms_jpeg),
+        }
+
+    if antialias == 1:
+        method_scores = {
+            "Qiao": load_qiao(csv_list_compare_antialias_gaussian["qiao"]),
+            "Mahdian": load_mahdian(csv_list_compare_antialias_gaussian["mahdian"]),
+            "Gallagher": load_gallagher(csv_list_compare_antialias_gaussian["gallagher"]), 
+            "Birajdar": load_birajdar(csv_list_compare_antialias_gaussian["birajdar"]), 
+            "Popescu": load_popescu(csv_list_compare_antialias_gaussian["popescu"]),
+            "Ours": load_ird(csv_list_compare_antialias_gaussian["ird"], do_nms_jpeg=do_nms_jpeg),
+            "Ours, c.v.": load_ird(csv_list_compare_antialias_gaussian["ird_cv"], do_nms_jpeg=do_nms_jpeg),
+        }
+
+    if antialias == 2:
+        method_scores = {
+            "Qiao": load_qiao(csv_list_compare_antialias_matlab["qiao"]),
+            "Mahdian": load_mahdian(csv_list_compare_antialias_matlab["mahdian"]),
+            "Gallagher": load_gallagher(csv_list_compare_antialias_matlab["gallagher"]), 
+            "Birajdar": load_birajdar(csv_list_compare_antialias_matlab["birajdar"]), 
+            "Popescu": load_popescu(csv_list_compare_antialias_matlab["popescu"]),
+            "Ours": load_ird(csv_list_compare_antialias_matlab["ird"], do_nms_jpeg=do_nms_jpeg),
+            "Ours, c.v.": load_ird(csv_list_compare_antialias_matlab["ird_cv"], do_nms_jpeg=do_nms_jpeg),
+        }
+
 
     for method in method_scores.keys():
 
@@ -494,6 +571,8 @@ def plot_roc_curves_comparison(q:int):
         scores_pos = scores[mask_entry_pos].flatten()
         scores = np.concatenate([scores_neg, scores_pos])
         y = [0] * len(scores_neg) + [1] * len(scores_pos)
+        # print(scores_neg.astype(float))
+        scores = scores.astype(float)
         scores[np.isinf(scores)] = 1e10
         scores[np.isnan(scores)] = 0
         print("method:", method)
@@ -502,7 +581,7 @@ def plot_roc_curves_comparison(q:int):
 
         fpr, tpr, thresholds = roc_curve(y, scores)
         roc_auc = roc_auc_score(y, scores)
-        if method.lower() == "ours":
+        if method.lower() in ["ours", "ours, c.v."]:
             plt.plot(fpr, tpr, "--", label=f"{method}: auc={roc_auc:.3f}")
         else:
             plt.plot(fpr, tpr, "-", label=f"{method}: auc={roc_auc:.3f}")
@@ -513,42 +592,6 @@ def plot_roc_curves_comparison(q:int):
     plt.tight_layout()
     plt.show()
 
-
-def plot_ablation_interpolator():
-    interpolators = ["nearest", "bilinear", "bicubic", "lanczos"]
-    # interpolators = ["bicubic"]
-    fpr = 0.01
-    for interp in interpolators:
-        ratios, scores_ratios = load_ird(csv_fname_list=csv_list_interp[interp], do_nms_jpeg=False)
-
-        acc_list = np.zeros(len(ratios))
-        print()
-        scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
-        # print("np.argwhere(np.abs(ratios - 1) < 1e-5)[0]:", np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0])
-        # print("scores_original:", scores_original)
-        scores_original = np.sort(scores_original)
-        threshold = scores_original[-int(fpr * len(scores_original))]
-        print("threshold:", threshold)
-        for i, ratio in enumerate(ratios):
-            if abs(ratio - 1) < 1e-5:
-                acc_list[i] = 0
-                continue
-            scores_one_ratio = scores_ratios[i]
-            acc = (scores_one_ratio > threshold).mean()
-            acc_list[i] = acc
-            print(f"resa_ratio={ratio:.2f}, acc={acc}")
-        acc_list = np.array(acc_list)
-
-        ratios_to_plot = ratios[~np.isnan(acc_list)]
-        acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
-        plt.plot(ratios_to_plot, acc_to_plot, marker="o", label=f"{interp}")
-    
-    plt.legend()
-    plt.xlabel("Resampling factor")
-    plt.ylabel("Accuracy (%)")
-    plt.xticks(ratios)
-    plt.tight_layout()
-    plt.show()
 
 
 
@@ -611,30 +654,44 @@ def plot_ablation_preprocess(q:int):
 
 
 def plot_ablation_size():
+    size_list = [300, 400, 500, 600]
     # size_list = [300, 400, 500, 600, 700, 800]
-    size_list = [600]
+    # size_list = [600]
+
+    # additional step: use pre-fixed ratios
+    fixed_ratios = np.arange(0.6, 2.0+1e-5, 0.1)
+
+
     fpr = 0.01
     for size in size_list:
         print_info(f"size: {size}")
         ratios, scores_ratios = load_ird(csv_fname_list=csv_list_image_size[size], do_nms_jpeg=False)
+
+        if fixed_ratios is not None:
+            print("fixed_ratios", fixed_ratios)
+            print("ratios", ratios)
+            print("[ np.min(r - fixed_ratios) < 1e-5 for r in ratios ]", [ np.abs(np.min(r - fixed_ratios)) < 1e-5 for r in ratios ])
+            scores_ratios = scores_ratios[[ np.min(np.abs(r - fixed_ratios)) < 1e-5 for r in ratios ]]
+            ratios = fixed_ratios
+        print("scores_ratios:", len(scores_ratios))
         scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
         scores_original = np.sort(scores_original)
         threshold = scores_original[-int(fpr * len(scores_original))]
 
-        ratio_valid_mask = np.abs(ratios - 1) > 1e-5
-        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+        # ratio_valid_mask = np.abs(ratios - 1) > 1e-5
+        # scores_ratios_valid = scores_ratios[ratio_valid_mask]
         
-        ratios_valid = ratios[ratio_valid_mask]
-        scores_ratios_valid = scores_ratios[ratio_valid_mask]
+        # ratios_valid = ratios[ratio_valid_mask]
+        # scores_ratios_valid = scores_ratios[ratio_valid_mask]
 
-        acc_list = np.zeros(len(ratios_valid))
+        acc_list = np.zeros(len(ratios))
         print()
         print("threshold:", threshold)
-        for i, ratio in enumerate(ratios_valid):
+        for i, ratio in enumerate(ratios):
             if (abs(ratio - 1) < 1e-5):
                 acc_list[i] = 0
                 continue
-            scores_one_ratio = scores_ratios_valid[i]
+            scores_one_ratio = scores_ratios[i]
             acc = (scores_one_ratio > threshold).mean()
             acc_list[i] = acc
             print(f"resa_ratio={ratio:.2f}, acc={acc}")
@@ -642,7 +699,7 @@ def plot_ablation_size():
 
         # ratios_to_plot = ratios[~np.isnan(acc_list)]
         # acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
-        plt.plot(ratios_valid, acc_list * 100, marker="o", label=f"{size}x{size}")
+        plt.plot(ratios, acc_list * 100, marker="o", label=f"{size}x{size}")
     
     plt.legend()
     plt.xlabel("Resampling factor")
@@ -653,9 +710,186 @@ def plot_ablation_size():
     pass
 
 
+def tutorial_zoomin():
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    # Sample data
+    x = range(100)
+    y1 = [i**0.5 for i in x]         # First curve
+    y2 = [i**0.5 + 1 for i in x]     # Second curve (offset)
+    y3 = [i**0.5 - 1 for i in x]     # Third curve (offset)
+
+    # Create the main plot
+    fig, ax = plt.subplots()
+    ax.plot(x, y1, label='Curve 1')
+    ax.plot(x, y2, label='Curve 2')
+    ax.plot(x, y3, label='Curve 3')
+    ax.legend()
+
+    # Create an inset axis on top of the main plot
+    inset_ax = inset_axes(ax, width="30%", height="30%", loc="lower right", borderpad=5)  # Adjust position
+
+    # Plot the same curves in the inset, focusing on a specific x-range
+    inset_ax.plot(x, y1, label='Curve 1')
+    inset_ax.plot(x, y2, label='Curve 2')
+    inset_ax.plot(x, y3, label='Curve 3')
+
+    # Set the x and y limits of the inset to zoom into the area of interest
+    inset_ax.set_xlim(30, 50)  # Zoomed x-axis range
+    inset_ax.set_ylim(4, 7.5)  # Zoomed y-axis range
+
+    # Optionally, remove legend or labels from the inset if they overlap or clutter the view
+    # inset_ax.get_legend().remove()  # Remove legend in the inset, if desired
+
+    # Add main axis labels and title
+    ax.set_xlabel("X-axis")
+    ax.set_ylabel("Y-axis")
+    plt.title("Main Plot with Zoomed Inset")
+
+    # Save the figure
+    plt.savefig("zoomed_multi_curve_plot.pdf", format="pdf")
+    plt.show()
+
+
+
+def plot_ablation_interpolator():
+    interpolators = ["nearest", "bilinear", "bicubic", "lanczos"]
+    # interpolators = ["bicubic"]
+    fixed_ratios = np.concatenate([
+        np.arange(0.6, 0.9, 0.1),
+        np.arange(0.9, 0.961, 0.01),
+        np.array([1]),
+        np.arange(1.04, 1.1, 0.01),
+        np.arange(1.1, 2.0+1e-5, 0.1),
+    ])
+    fpr = 0.01
+
+    fig, ax = plt.subplots()
+    inset_ax = inset_axes(ax, width="40%", height="40%", loc="lower right", borderpad=3)  # Adjust as needed
+
+    for interp in interpolators:
+        ratios, scores_ratios = load_ird(csv_fname_list=csv_list_interp[interp], do_nms_jpeg=False)
+
+        ratio_to_scores = {}
+        for ratio, scores in zip(ratios, scores_ratios):
+            ratio_to_scores[round(ratio, 4)] = scores
+
+        acc_list = np.zeros(len(fixed_ratios))
+        print()
+        scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
+        # print("np.argwhere(np.abs(ratios - 1) < 1e-5)[0]:", np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0])
+        # print("scores_original:", scores_original)
+        scores_original = np.sort(scores_original)
+        threshold = scores_original[-int(fpr * len(scores_original))]
+        print("threshold:", threshold)
+
+        for i, ratio in enumerate(fixed_ratios):
+            if abs(round(ratio, 4) - 1) < 0.035:
+                acc_list[i] = 0
+                continue
+            scores_one_ratio = ratio_to_scores[round(ratio, 4)]
+
+            acc = (scores_one_ratio > threshold).mean()
+            acc_list[i] = acc
+            print(f"resa_ratio={ratio:.2f}, acc={acc}")
+        acc_list = np.array(acc_list)
+
+        ratios_to_plot = fixed_ratios[~np.isnan(acc_list)]
+        acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
+        ax.plot(ratios_to_plot, acc_to_plot, marker="o", markersize=4, label=f"{interp}")
+        inset_ax.plot(ratios_to_plot, acc_to_plot, marker="o", markersize=4, label=f"{interp}")
+    
+    ax.legend()
+
+    
+
+    # Set the limits of the inset to zoom into a specific part of the data
+    
+    # inset_ax.set_xticks(np.arange(0.9, 1.10001, 0.01))
+    inset_ax.set_xlim(0.9, 1.1)  # X-axis range for zoomed-in area
+    inset_ax.set_ylim(56, 102)  # Y-axis range for zoomed-in area
+    # inset_ax.get_legend().remove()  
+    
+    ax.set_xlabel("Resampling factor")
+    ax.set_ylabel("Accuracy (%)")
+    ax.set_xticks(np.arange(0.6, 2.001, 0.1))
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_ablation_antialias(use_matlab:bool):
+    # interpolators = ["nearest", "bilinear", "bicubic", "lanczos"]
+    interpolators = ["bilinear", "bicubic", "lanczos"]
+    fixed_ratios = np.arange(0.6, 1.0001, 0.05)
+    fpr = 0.01
+
+    fig, ax = plt.subplots()
+    # inset_ax = inset_axes(ax, width="40%", height="40%", loc="lower right", borderpad=3)  # Adjust as needed
+
+    for interp in interpolators:
+        print_info("interp:", interp)
+        if use_matlab:
+            ratios, scores_ratios = load_ird(csv_fname_list=csv_list_interp_antialias_matlab[interp], do_nms_jpeg=False)
+        else:
+            ratios, scores_ratios = load_ird(csv_fname_list=csv_list_interp_antialias[interp], do_nms_jpeg=False)
+
+        ratio_to_scores = {}
+        for ratio, scores in zip(ratios, scores_ratios):
+            ratio_to_scores[round(ratio, 4)] = scores
+
+        acc_list = np.zeros(len(fixed_ratios))
+        print()
+        scores_original = scores_ratios[np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0]]
+        # print("np.argwhere(np.abs(ratios - 1) < 1e-5)[0]:", np.argwhere(np.abs(ratios - 1) < 1e-5)[0,0])
+        # print("scores_original:", scores_original)
+        scores_original = np.sort(scores_original)
+        threshold = scores_original[-int(fpr * len(scores_original))]
+        print("threshold:", threshold)
+
+        for i, ratio in enumerate(fixed_ratios):
+            if abs(round(ratio, 4) - 1) < 0.035:
+                acc_list[i] = 0
+                continue
+            scores_one_ratio = ratio_to_scores[round(ratio, 4)]
+
+            acc = (scores_one_ratio > threshold).mean()
+            acc_list[i] = acc
+            print(f"resa_ratio={ratio:.2f}, acc={acc}")
+        acc_list = np.array(acc_list)
+
+        ratios_to_plot = fixed_ratios[~np.isnan(acc_list)]
+        acc_to_plot = acc_list[~np.isnan(acc_list)] * 100
+        ax.plot(ratios_to_plot, acc_to_plot, marker="o", markersize=4, label=f"{interp} + antialias")
+        # inset_ax.plot(ratios_to_plot, acc_to_plot, marker="o", markersize=4, label=f"{interp}")
+    
+    ax.legend()
+
+
+    # Set the limits of the inset to zoom into a specific part of the data
+    
+    # inset_ax.set_xticks(np.arange(0.9, 1.10001, 0.01))
+    # inset_ax.set_xlim(0.9, 1.1)  # X-axis range for zoomed-in area
+    # inset_ax.set_ylim(56, 102)  # Y-axis range for zoomed-in area
+    # inset_ax.get_legend().remove()  
+    
+    ax.set_xlabel("Resampling factor")
+    ax.set_ylabel("Accuracy (%)")
+    ax.set_xticks(np.arange(0.6, 1.0001, 0.05))
+    plt.tight_layout()
+    plt.show()
+    pass
+
+
 if __name__ == "__main__":
     # print_accuracies()
-    # plot_roc_curves_comparison(q=-1)
+    plot_roc_curves_comparison(q=90, antialias=False)
+    # plot_ablation_preprocess(q=90)
+    # plot_ablation_size()
+    # tutorial_zoomin()
     # plot_ablation_interpolator()
-    # plot_ablation_preprocess(q=95)
-    plot_ablation_size()
+
+    # plot_ablation_antialias(use_matlab=False)
+
+    # plot_roc_curves_comparison(q=-1, antialias=1)

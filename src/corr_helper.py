@@ -62,7 +62,8 @@ class CorrHelper(object):
         self.h = h
         self.w = w
 
-        self.dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.dev = torch.device("cpu")
 
         self.uf_expand_int = torch.from_numpy(uf_expand_int).to(self.dev)
         self.uf2_expand_int = torch.from_numpy(uf2_expand_int).to(self.dev)
@@ -100,11 +101,17 @@ class CorrHelper(object):
         self.norm_1_arr = torch.sqrt(self.sum_square_1_arr - self.sum_1_arr * torch.conj(self.sum_1_arr) / (self.lr*self.lc))
 
         top = 0
-        self.num_blob_r = (h-1) // self.lr + 1
+        # self.num_blob_r = (h-1) // self.lr + 1
+        self.num_blob_r = (h-self.lr) // self.lr + 1
+        # print("h:", h)
+        # print("self.lr:", self.lr)
+
+        # exit(0)
         bot = self.num_blob_r * self.lr + top
 
         left = 0
-        self.num_blob_c = (w-1) // self.lc + 1
+        # self.num_blob_c = (w-1) // self.lc + 1
+        self.num_blob_c = (w-self.lc) // self.lc + 1
         right = self.num_blob_c * self.lc + left
 
         # self.uf_expand_conj = torch.conj(torch.from_numpy(uf_expand[:(2*h+self.lr*2), left:right])).to(self.dev)  # todo: reduce the size
@@ -118,6 +125,11 @@ class CorrHelper(object):
             top = period % self.h
             bot = self.num_blob_r * self.lr + top
             uf_cropped_conj_2 = self.uf_expand_conj[top:bot, : ]
+            # print("period:", period)
+            # print("top:", top)
+            # print("bot:", bot)
+            # print("uf_cropped_1:", self.uf_cropped_1.shape)
+            # print("uf_cropped_conj_2:", uf_cropped_conj_2.shape)
             prod_12_arr = self.uf_cropped_1 * uf_cropped_conj_2
             sum_prod_12_arr = prod_12_arr.view(self.num_blob_r, self.lr, self.num_blob_c, self.lc).sum(dim=(1,3)).flatten()
             self.sum_prod_12_arr_periods[period] = sum_prod_12_arr
@@ -149,6 +161,11 @@ class CorrHelper(object):
 
         sum_prod_12_arr = self.sum_prod_12_arr_periods[period]
 
+        # print()
+        # print("sum_prod_12_arr", sum_prod_12_arr.shape)
+        # print("self.sum_1_arr", self.sum_1_arr.shape)
+        # print("sum_2_arr", sum_2_arr.shape)
+
         corrs = torch.abs(
                 (sum_prod_12_arr - self.sum_1_arr * torch.conj(sum_2_arr) / (self.lr*self.lc)) / (self.norm_1_arr+EPS) / (norm_2_arr+EPS) 
             )
@@ -161,7 +178,7 @@ def compute_corr_periods(img_ch, window_ratio, max_period):
     
     u_f = np.fft.fftn(img_ch, axes=(0,1), norm="ortho")
 
-    uf_expand = np.tile(u_f, (2,2)) / (h*w)
+    uf_expand = np.tile(u_f, (3,2)) / (h*w)
 
     uf_expand_int = integral_image(uf_expand)
     uf2_expand_int = integral_image(uf_expand * np.conjugate(uf_expand)).real

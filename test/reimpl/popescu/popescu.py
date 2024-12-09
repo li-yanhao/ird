@@ -562,8 +562,8 @@ def test_synthetic_map():
 
 
 def generate_synthetic_maps():
-    ups_rates = np.arange(0.01, 0.6+1e-10, 0.01)
-    downs_rates = np.arange(0.01, 0.4+1e-10, 0.01)
+    ups_rates = np.arange(0.01, 0.61+1e-10, 0.01)
+    downs_rates = np.arange(0.01, 0.41+1e-10, 0.01)
 
     height, width = 598, 598
 
@@ -625,7 +625,24 @@ def test_search_map():
     print(smap_fname_best)
 
 
-def main_experiment(ratio):
+
+def process_one_image(fname:str, detector, searcher):
+    img = skimage.io.imread(fname)
+
+    p_map = detector.calculate_probability_map(img)
+    P_map = detector.calculate_fourier_map(p_map)
+
+    similarity, smap_fname = searcher.search(P_map)
+
+    print(fname)
+    print(similarity)
+    print(smap_fname)
+    print()
+
+    return fname, ratio, similarity
+
+
+def main_experiment(ratio, antialias:int):
     # load image
     # compute pmap
     # search smap
@@ -634,10 +651,18 @@ def main_experiment(ratio):
     # ratio = 1.3
     interp = "bicubic"
     jpeg_q1 = -1
-    jpeg_q2 = 90
+    jpeg_q2 = -1
 
-    # input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
-    input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    if antialias == 0:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+        # input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+        # input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 1:
+        # input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+        input_folder = f"../../data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+        print(input_folder)
+    elif antialias == 2:
+        input_folder = f"../../data/resample_detection/matlab/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
 
     if jpeg_q2 == -1:
         fname_list = glob.glob(os.path.join(input_folder, "*.png"))
@@ -646,10 +671,10 @@ def main_experiment(ratio):
 
     fname_list.sort()
 
-    
+
     detector = ResamplingPopescu()
     searcher = SearchMap(synthetic_map_folder="synthetic_maps")
-    
+
     df_data = {}
     # fname,target_size,resa_ratio,interp,jpeg_q1,jpeg_q2,similarity
     df_data["fname"] = []
@@ -661,20 +686,13 @@ def main_experiment(ratio):
     df_data["similarity"] = []
 
 
-    for fname in tqdm(fname_list):
-        img = skimage.io.imread(fname)
+    from joblib import Parallel, delayed
+    from tqdm import tqdm
 
-        p_map = detector.calculate_probability_map(img)
-        P_map = detector.calculate_fourier_map(p_map)
+    num_workers = 32
+    results = Parallel(n_jobs=num_workers)(delayed(process_one_image)(fname, detector, searcher) for fname in tqdm(fname_list))
 
-
-        similarity, smap_fname = searcher.search(P_map)
-        print(smap_fname)
-
-        print(fname)
-        print(similarity)
-        print()
-
+    for fname, ratio, similarity in results:
         df_data["fname"].append(fname)
         df_data["target_size"].append(target_size)
         df_data["resa_ratio"].append(ratio)
@@ -682,6 +700,29 @@ def main_experiment(ratio):
         df_data["jpeg_q1"].append(-1)
         df_data["jpeg_q2"].append(-1)
         df_data["similarity"].append(similarity)
+
+
+    # for fname in tqdm(fname_list):
+    #     img = skimage.io.imread(fname)
+
+    #     p_map = detector.calculate_probability_map(img)
+    #     P_map = detector.calculate_fourier_map(p_map)
+
+
+    #     similarity, smap_fname = searcher.search(P_map)
+    #     print(smap_fname)
+
+    #     print(fname)
+    #     print(similarity)
+    #     print()
+
+    #     df_data["fname"].append(fname)
+    #     df_data["target_size"].append(target_size)
+    #     df_data["resa_ratio"].append(ratio)
+    #     df_data["interp"].append(interp)
+    #     df_data["jpeg_q1"].append(-1)
+    #     df_data["jpeg_q2"].append(-1)
+    #     df_data["similarity"].append(similarity)
 
 
     # save to .csv
@@ -692,8 +733,16 @@ def main_experiment(ratio):
     np.set_printoptions(precision=3)
 
     # output_fname = f"popescu_jpeg_no_resa_ratio_{ratio:.2f}.csv"
-    output_fname = f"popescu_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_ratio_{ratio:.2f}.csv"
+    if antialias == 0:  # no anti-alias
+        output_fname = f"popescu_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_ratio_{ratio:.2f}.csv"
+    elif antialias == 1:  # Gaussian anti-alias
+        output_fname = f"popescu_antialias_gaussian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_ratio_{ratio:.2f}.csv"
+    else:  # matlab anti-alias
+        output_fname = f"popescu_antialias_matlab_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_ratio_{ratio:.2f}.csv"
+
     df.to_csv(output_fname, index=False, float_format='%4.2f')
+
+    print(f"Saved results at {output_fname}")
 
 
 if __name__ == "__main__":
@@ -705,4 +754,4 @@ if __name__ == "__main__":
 
     print(sys.argv)
     ratio = float(sys.argv[1])
-    main_experiment(ratio)
+    main_experiment(ratio, antialias=1)

@@ -103,7 +103,7 @@ def test_Gallagher():
 
 
 
-def main_experiment(ratio:float):
+def main_experiment(ratio:float, antialias:int):
     num_neighbor = 15
 
     target_size = 600
@@ -111,7 +111,12 @@ def main_experiment(ratio:float):
     jpeg_q1 = -1
     jpeg_q2 = -1
 
-    input_folder = f"/Volumes/HPP900/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    if antialias == 0:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 1:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 2:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/ird/test/data/resample_detection/matlab/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
 
     if jpeg_q2 == -1:
         fname_list = glob.glob(os.path.join(input_folder, "*.png"))
@@ -160,7 +165,13 @@ def main_experiment(ratio:float):
 
     np.set_printoptions(precision=3)
 
-    output_fname = f"gallagher_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    if antialias == 0:
+        output_fname = f"gallagher_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 1:
+        output_fname = f"gallagher_antialias_gaussian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 2:
+        output_fname = f"gallagher_antialias_matlab_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+
     df.to_csv(output_fname, index=False, float_format='%4.2f')
 
 
@@ -170,5 +181,5 @@ if __name__ == "__main__":
     # print(sys.argv)
     # ratio = float(sys.argv[1])
 
-    for ratio in np.arange(0.6, 1.6+1e-5, 0.1):
-        main_experiment(ratio)
+    for ratio in np.arange(0.6, 1.0+1e-5, 0.05):
+        main_experiment(ratio, antialias=1)

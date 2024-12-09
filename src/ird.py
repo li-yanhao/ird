@@ -159,7 +159,7 @@ def preprocess(img:np.ndarray, proc_type:str, proc_param:dict) -> np.ndarray:
 
 
 def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_ratio:float,
-                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1, **kargs):
+                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1):
     """_summary_
 
     Parameters

@@ -4,17 +4,22 @@ import os
 
 import skimage.io
 import numpy as np
+import uuid
 
 
 # WARNING: this cannot be used by multh-threading !
-def tv_extract_noise(img, lmda:float) -> np.ndarray:
-
-    thread_id = threading.get_ident()
+def tv_extract_noise(img, lmda:float, **kwargs) -> np.ndarray:
+    
+    # thread_id = threading.get_ident()
+    # print("thread id:", thread_id)
+    unique_id = uuid.uuid4()
+    # print("id(img):", id(img))
+    # print("unique_id:", unique_id)
 
     # TODO: wrap TV as an API, with array in array out
     
-    input_fname = f"in_{thread_id}.png"
-    output_fname = f"out_{thread_id}.tiff"
+    input_fname = f"in_{unique_id}.png"
+    output_fname = f"out_{unique_id}.tiff"
 
     skimage.io.imsave(input_fname, img.astype(np.uint8))
 

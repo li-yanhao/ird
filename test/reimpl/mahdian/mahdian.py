@@ -134,9 +134,9 @@ def mahdian_detector(img:np.ndarray, num_avg:int, is_jpeg:bool):
     Rphi_fft = np.abs(np.fft.fft(Rphi, norm="ortho"))
 
 
-    plt.plot(Rphi_fft)
-    plt.title("R_phi")
-    plt.show()
+    # plt.plot(Rphi_fft)
+    # plt.title("R_phi")
+    # plt.show()
 
     
     # # debug: check the fft
@@ -206,7 +206,7 @@ def cross_validate(sal_0:np.ndarray, sal_1:np.ndarray, rg:int):
     return np.maximum(sal_0, sal_1_dil)
 
 
-def main_experiment(ratio:float, bidirect:bool):
+def main_experiment(ratio:float, bidirect:bool, antialias:int):
     num_neighbor = 15
 
     target_size = 600
@@ -214,7 +214,13 @@ def main_experiment(ratio:float, bidirect:bool):
     jpeg_q1 = -1
     jpeg_q2 = -1
 
-    input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    if antialias == 0:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 1:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias == 2:
+        input_folder = f"/Users/yli/phd/synthetic_image_detection/ird/test/data/resample_detection/matlab/target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    print("input_folder:", input_folder)
 
     if jpeg_q2 == -1:
         is_jpeg = False
@@ -289,12 +295,20 @@ def main_experiment(ratio:float, bidirect:bool):
 
     np.set_printoptions(precision=3)
 
-    if bidirect:
-        output_fname = f"mahdian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_bidirect_resa_ratio_{ratio:.2f}.csv"
-    else:
+    if antialias == 0:
         output_fname = f"mahdian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 1:
+        output_fname = f"mahdian_antialias_gaussian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+    elif antialias == 2:
+        output_fname = f"mahdian_antialias_matlab_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+
+    # if bidirect:
+    #     output_fname = f"mahdian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_bidirect_resa_ratio_{ratio:.2f}.csv"
+    # else:
+    #     output_fname = f"mahdian_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
 
     df.to_csv(output_fname, index=False, float_format='%4.2f')
+    print(f"Saved results at {output_fname}")
 
 
 def test_mahdian_detector():
@@ -324,11 +338,11 @@ def test_mahdian_detector():
 if __name__ == "__main__":
     # example_radon()
     # test_autocorrelate()
-    test_mahdian_detector()
+    # test_mahdian_detector()
 
     # print(sys.argv)
     # ratio = float(sys.argv[1])
 
-    # for ratio in np.arange(0.6, 1.6+1e-5, 0.1):
+    for ratio in np.arange(0.6, 1.0+1e-5, 0.05):
     # for ratio in [1.40]:
-        # main_experiment(ratio, bidirect=False)
+        main_experiment(ratio, bidirect=False, antialias=1)
