@@ -250,7 +250,7 @@ def main(args):
     plt.xlabel("d", fontsize=12)
 
     # plt.show()
-    plt.savefig("ipol_result.pdf")
+    plt.savefig("ipol_result.png")
 
     if len(results_to_print) == 0:
         print("No resampling traces detected.")
