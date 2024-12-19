@@ -1,5 +1,6 @@
 # use one of the images from this repository: https://github.com/centreborelli/ipol-docker-images/
-FROM registry.ipol.im/ipol:v1-py3.10
+# FROM registry.ipol.im/ipol:v1-py3.10
+FROM registry.ipol.im/ipol:v2-py3.10-tensorflow
 
 # copy the requirements.txt and install python packages
 COPY requirements.txt requirements.txt
