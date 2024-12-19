@@ -5,6 +5,10 @@ FROM registry.ipol.im/ipol:v1-py3.8
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt
 
+
+RUN cd src/filters/CDS_ChambolleTV && make
+
+
 ENV bin /workdir/bin/
 RUN mkdir -p $bin/tmp
 
