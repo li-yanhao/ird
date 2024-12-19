@@ -75,7 +75,7 @@ def _bool_lateral_maxima(data, axis=0, order=1, exclude_range=0, lateral='both',
     return results
 
 
-def preprocess(img:np.ndarray, proc_type:str, proc_param:dict) -> np.ndarray:
+def preprocess(img:np.ndarray, proc_type:str, proc_param:dict={}) -> np.ndarray:
     if proc_type == None or proc_type.lower() == "none":
         return img
 
@@ -116,7 +116,11 @@ def preprocess(img:np.ndarray, proc_type:str, proc_param:dict) -> np.ndarray:
 
     if proc_type == "rt":
         # print("rt_size", proc_param["rt_size"])
-        img = filters.rank_transform(img, sz=proc_param["rt_size"])
+        if "rt_size" in proc_param.keys():
+            sz = proc_param["rt_size"]
+        else:
+            sz = 3
+        img = filters.rank_transform(img, sz=sz)
         return img
 
     if proc_type == "rt_v2":

@@ -25,7 +25,8 @@ csv_list_uncompressed = {
 
     "mahdian": glob.glob("reimpl/mahdian/results/mahdian_jpeg_q1_-1_q2_-1_resa_ratio/*csv"),
 
-    "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_-1_resa_ratio/birajdar_jpeg_q1_-1_q2_-1_resa_ratio_*.csv"),
+    "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_-1_resa_ratio/birajdar_jpeg_q1_-1_q2_-1_resa_ratio_*.csv"),  # original
+    # "birajdar": glob.glob("reimpl/birajdar/birajdar_jpeg_q1_-1_q2_-1_neighbor_5_resa_ratio_*.csv"),  # debug
 
     "qiao": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/reimpl/qiao/target_600_q1_-1_q2_-1.csv"),
 
@@ -45,7 +46,10 @@ csv_list_q95 = {
 
     "qiao": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/reimpl/qiao/target_600_q1_-1_q2_95.csv"),
 
-    "ird": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/integration/output/1k_impact_proprocess_q1_-1_q2_95_tv/*csv")
+    "ird": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/integration/output/1k_impact_proprocess_q1_-1_q2_95_tv/*csv"),
+
+    "ird_cv": glob.glob("raw_result/impact_preprocess_rt_cv/impact_preprocess_rt_cv_q_95_resa_ratio_*.csv")  # original
+    # "ird_cv": glob.glob("/Users/yli/phd/synthetic_image_detection/hongkong/integration/output/1k_impact_proprocess_q1_-1_q2_95_tv/*csv")  # debug
 }
 
 csv_list_q90 = {
@@ -61,8 +65,54 @@ csv_list_q90 = {
 
     "ird": glob.glob("raw_result/1k_impact_proprocess_q1_-1_q2_90_tv/*csv"),
 
-    "ird_cv": glob.glob("raw_result/impact_preprocess_rt_cv/impact_preprocess_rt_cv_q_90_resa_ratio_*.csv")
+    # "ird_cv": glob.glob("raw_result/impact_preprocess_rt_cv/impact_preprocess_rt_cv_q_90_resa_ratio_*.csv"),  # original
+    "ird_cv": glob.glob("raw_result/impact_jpeg_cv/impact_jpeg_cv_q_90_resa_ratio_*.csv")  # debug
 }
+
+
+csv_list_q80 = {
+    # "popescu": glob.glob("reimpl/popescu/popescu_jpeg_q1_-1_q2_90_*.csv"),
+    # "gallagher": glob.glob("reimpl/gallagher/gallagher_jpeg_q1_-1_q2_90_resa_ratio_*csv"),
+    # "mahdian": glob.glob("reimpl/mahdian/results/mahdian_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "qiao": glob.glob("reimpl/qiao/target_600_q1_-1_q2_90.csv"),
+    "ird": glob.glob("raw_result/impact_jpeg/impact_jpeg_q_80_resa_ratio_*csv"),
+    "ird_cv": glob.glob("raw_result/impact_jpeg_cv/impact_jpeg_cv_q_80_resa_ratio_*csv"),
+}
+
+csv_list_q70 = {
+    # "popescu": glob.glob("reimpl/popescu/popescu_jpeg_q1_-1_q2_90_*.csv"),
+    # "gallagher": glob.glob("reimpl/gallagher/gallagher_jpeg_q1_-1_q2_90_resa_ratio_*csv"),
+    # "mahdian": glob.glob("reimpl/mahdian/results/mahdian_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "qiao": glob.glob("reimpl/qiao/target_600_q1_-1_q2_90.csv"),
+    "ird": glob.glob("raw_result/impact_jpeg/impact_jpeg_q_70_resa_ratio_*csv"),
+    "ird_cv": glob.glob("raw_result/impact_jpeg_cv/impact_jpeg_cv_q_70_resa_ratio_*csv"),
+}
+
+
+csv_list_q60 = {
+    # "popescu": glob.glob("reimpl/popescu/popescu_jpeg_q1_-1_q2_90_*.csv"),
+    # "gallagher": glob.glob("reimpl/gallagher/gallagher_jpeg_q1_-1_q2_90_resa_ratio_*csv"),
+    # "mahdian": glob.glob("reimpl/mahdian/results/mahdian_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "qiao": glob.glob("reimpl/qiao/target_600_q1_-1_q2_90.csv"),
+    "ird": glob.glob("raw_result/impact_jpeg/impact_jpeg_q_60_resa_ratio_*csv"),
+    "ird_cv": glob.glob("raw_result/impact_jpeg_cv/impact_jpeg_cv_q_60_resa_ratio_*csv"),
+}
+
+csv_list_q50 = {
+    # "popescu": glob.glob("reimpl/popescu/popescu_jpeg_q1_-1_q2_90_*.csv"),
+    # "gallagher": glob.glob("reimpl/gallagher/gallagher_jpeg_q1_-1_q2_90_resa_ratio_*csv"),
+    # "mahdian": glob.glob("reimpl/mahdian/results/mahdian_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "birajdar": glob.glob("reimpl/birajdar/results_classification/birajdar_jpeg_q1_-1_q2_90_resa_ratio/*csv"),
+    # "qiao": glob.glob("reimpl/qiao/target_600_q1_-1_q2_90.csv"),
+    "ird": glob.glob("raw_result/impact_jpeg/impact_jpeg_q_50_resa_ratio_*csv"),
+    "ird_cv": glob.glob("raw_result/impact_jpeg_cv/impact_jpeg_cv_q_50_resa_ratio_*csv"),
+}
+
+
+
 
 csv_list_interp = {
     "nearest":  glob.glob("raw_result/impact_interpolator/impact_interpolator_nearest_*.csv") ,
@@ -145,6 +195,28 @@ csv_list_preprocess = {
 
 def print_info(*text):
     print("\033[1;32m" + " ".join(map(str, text)) + "\033[0;0m")
+
+
+def print_to_excel(array):
+
+    if np.ndim(array) == 1:
+        array = array[None, ...]
+    # Example array
+    # array = np.array([[1, 2, 3],
+    #                 [4, 5, 6],
+    #                 [7, 8, 9]])
+
+    # Convert the array to a tab-separated string
+    array_as_string = '\n'.join('\t'.join(map(str, row)) for row in array)
+
+    # Print to console for easy copy-pasting
+    print(array_as_string)
+
+    # Optionally, write to a file
+    with open("array_for_excel.txt", "w") as f:
+        f.write(array_as_string)
+
+    print_info("Check results in array_for_excel.txt")
 
 
 def _load_compared_method(csv_fname_list, method, metric_name):
@@ -295,8 +367,8 @@ def filter_by_nms(nfa_histos, threshold, anchor_periods, nms_min_range:int=2):
             mask_jpeg[entry_img, p_left+1:anchor_period+1] = True 
             while p_left >= 0 and positive_mask[entry_img, p_left] == True:
                 mask_jpeg[entry_img, p_left] = True
-                print("fname of suppression: entry_img=", entry_img)
-                print(f"nfa[{p_left}]=", nfa_histos[entry_img, p_left])
+                # print("fname of suppression: entry_img=", entry_img)
+                # print(f"nfa[{p_left}]=", nfa_histos[entry_img, p_left])
                 p_left -= 1
             
             p_right = anchor_period + nms_min_range + 1
@@ -368,7 +440,9 @@ def load_ird(csv_fname_list, do_nms_jpeg:bool): # ours
 
     print("")
 
-    for e in recall_list: print(e)
+    # for e in recall_list: print(e)
+
+    print_to_excel(np.array(recall_list))
 
     # scores = np.stack(scores)
     scores = np.array(scores, dtype=object)
@@ -516,9 +590,22 @@ def plot_roc_curves_comparison(q:int, antialias:int):
     elif q == 90:
         csv_list = csv_list_q90
         do_nms_jpeg = True
+    elif q == 80:
+        csv_list = csv_list_q80
+        do_nms_jpeg = True
+    elif q == 70:
+        csv_list = csv_list_q70
+        do_nms_jpeg = True
+    elif q == 60:
+        csv_list = csv_list_q60
+        do_nms_jpeg = True
+    elif q == 50:
+        csv_list = csv_list_q50
+        do_nms_jpeg = True
 
 
     if antialias == 0:
+        # print_info("loading ours,c.v. with ", csv_list["ird_cv"])
         method_scores = {
             "Qiao": load_qiao(csv_list["qiao"]),
             "Mahdian": load_mahdian(csv_list["mahdian"]),
@@ -556,8 +643,8 @@ def plot_roc_curves_comparison(q:int, antialias:int):
 
         ratios, scores = method_scores[method]
 
-        mask_entry_neg = np.abs(ratios - 1.0) < 1e-5
 
+        mask_entry_neg = np.abs(ratios - 1.0) < 1e-5
         if q == -1:
             mask_entry_pos = np.abs(ratios - 1.0) > 1e-5
         else:
@@ -785,7 +872,7 @@ def plot_ablation_interpolator():
         print("threshold:", threshold)
 
         for i, ratio in enumerate(fixed_ratios):
-            if abs(round(ratio, 4) - 1) < 0.035:
+            if abs(round(ratio, 4) - 1) < 0.035: # = 21/600
                 acc_list[i] = 0
                 continue
             scores_one_ratio = ratio_to_scores[round(ratio, 4)]
@@ -882,9 +969,99 @@ def plot_ablation_antialias(use_matlab:bool):
     pass
 
 
+def plot_bars_jpeg():
+    compressions = ['PNG', 'JPEG\nQ=95', 'JPEG\nQ=90', 'JPEG\nQ=80', 'JPEG\nQ=70', 'JPEG\nQ=60', 'JPEG\nQ=50']
+    accuracies_hori = []
+    accuracies_cv = []
+
+    for q in [-1, 95, 90, 80, 70, 60, 50]:
+
+        if q == -1:
+            csv_list = csv_list_uncompressed
+            do_nms_jpeg = False
+        elif q == 95:
+            csv_list = csv_list_q95
+            do_nms_jpeg = True
+        elif q == 90:
+            csv_list = csv_list_q90
+            do_nms_jpeg = True
+        elif q == 80:
+            csv_list = csv_list_q80
+            do_nms_jpeg = True
+        elif q == 70:
+            csv_list = csv_list_q70
+            do_nms_jpeg = True
+        elif q == 60:
+            csv_list = csv_list_q60
+            do_nms_jpeg = True
+        elif q == 50:
+            csv_list = csv_list_q50
+            do_nms_jpeg = True
+        
+        method_scores = {
+            "Ours": load_ird(csv_list["ird"], do_nms_jpeg),
+            "Ours, c.v.": load_ird(csv_list["ird_cv"], do_nms_jpeg),
+        }
+
+        # compute the accuracy
+        for method in method_scores.keys():
+            ratios, scores = method_scores[method]
+
+            mask_entry_neg = np.abs(ratios - 1.0) < 1e-5
+            if q == -1:
+                mask_entry_pos = np.abs(ratios - 1.0) > 1e-5
+            else:
+                mask_entry_pos = np.logical_and.reduce((
+                    np.abs(ratios - 0.8) > 1e-5,
+                    np.abs(ratios - 1.0) > 1e-5,
+                    np.abs(ratios - 1.6) > 1e-5
+                ))
+
+            scores_neg = scores[mask_entry_neg].flatten()
+            scores_pos = scores[mask_entry_pos].flatten()
+
+            scores_neg = np.sort(scores_neg)
+            scores_pos = np.sort(scores_pos)
+
+
+            fpr = 0.01
+            threshold = scores_neg[-int(fpr * len(scores_neg))]
+
+            acc_overall = (scores_pos > threshold).mean()
+
+            print(f"acc_overall: {acc_overall}")
+
+            if method == "Ours":
+                accuracies_hori.append(acc_overall * 100)
+            if method == "Ours, c.v.":
+                accuracies_cv.append(acc_overall * 100)
+
+    # Data
+    # categories = ['A', 'B', 'C', 'D']
+    # values = [3, 7, 5, 9]
+    width = 0.35
+
+    # Create bar plot
+    x = np.arange(len(compressions))
+    plt.bar(x - width/2, accuracies_hori, width, label="w\o cross val.", color="skyblue")
+    plt.bar(x + width/2, accuracies_cv, width, label="with cross val.", color="salmon")
+
+    # Add labels and title
+    # plt.xlabel('Compression')
+    plt.xticks(x, compressions)  
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    # plt.title('Vertical Bar Plot')
+
+    # Show plot
+    plt.tight_layout()
+    plt.show()
+
+    
+
 if __name__ == "__main__":
     # print_accuracies()
-    plot_roc_curves_comparison(q=90, antialias=False)
+    # plot_roc_curves_comparison(q=90, antialias=False)
     # plot_ablation_preprocess(q=90)
     # plot_ablation_size()
     # tutorial_zoomin()
@@ -893,3 +1070,5 @@ if __name__ == "__main__":
     # plot_ablation_antialias(use_matlab=False)
 
     # plot_roc_curves_comparison(q=-1, antialias=1)
+
+    plot_bars_jpeg()
