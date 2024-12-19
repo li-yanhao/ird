@@ -94,7 +94,7 @@ def resize(x:np.ndarray, z=None, size=None, interp="bicubic", antialias=False):
             x_re[:,:,c] = resize(x[:,:,c], size=(height, width), interp=interp, antialias=antialias)
         return x_re
     
-    if antialias:
+    if antialias or interp == "lanczos":
         x_re = resize_pil(x, size, interp)
     else:
         x_re = resize_torch(x, size, interp)
