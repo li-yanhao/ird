@@ -2,33 +2,20 @@
    "archive": {
       "enable_reconstruct": true,
       "files": {
-         "input_0.png": "Input image",
-         "res.png": "Residual image",
-         "detection.png": "Detection image"
+         "input_0.png": "Input image"
       },
       "params": [
-         "excR",
-         "log",
-         "chsim",
-         "chanom",
-         "nbP",
-         "dims",
-         "radius",
-         "nfa",
-         "mode"
+         "preprec"
       ]
    },
    "build": {
-      "build1": {
-         "url": "http://dev.ipol.im/~tehret/anomaly_detection_v2.tar.gz",
-         "construct": "cd anomaly_detection_v2 && mkdir build && cd build && cmake .. && make",
-         "move": "anomaly_detection_v2/build/bin/main_model,anomaly_detection_v2/build/bin/main_detection,anomaly_detection_v2/build/bin/convert.py,anomaly_detection_v2/build/bin/preprocessing.py,anomaly_detection_v2/build/bin/postprocessing.py,anomaly_detection_v2/build/bin/project_pca_upper.py,anomaly_detection_v2/build/bin/mahalanobis.py,anomaly_detection_v2/build/bin/extract.py,anomaly_detection_v2/src/Utilities/exhaustive.py,anomaly_detection_v2/src/Utilities/visu_pca.py",
-         "virtualenv": "anomaly_detection_v2/requirements.txt"
-      }
+      "url": "git@github.com:li-yanhao/ird.git",
+      "rev": "origin/main",
+      "dockerfile": ".ipol/Dockerfile"
    },
    "general": {
       "timeout": 300,
-      "demo_title": "Methane detection (spatial)",
+      "demo_title": "Image resampling detection in Fourier domain",
       "input_description": [
          ""
       ],
@@ -43,160 +30,45 @@
       {
          "description": "Input",
          "dtype": "x",
-         "ext": ".tif",
-         "max_pixels": "1000*1000",
-         "max_weight": 50242880,
+         "ext": ".png",
+         "max_pixels": "2000*2000",
          "required": true,
          "type": "image"
       }
    ],
    "params": [
       {
-         "id": "sat",
-         "label": "Satellite",
+         "id": "preprec",
+         "label": "Preprocessing",
          "type": "selection_collapsed",
          "default_value": 0,
          "values": {
-            "Worldview": 0,
-            "Sentinel 2": 1,
-            "Sentinel 5P": 2
-         }
-      },
-      {
-         "id": "log",
-         "label": "Apply log",
-         "comments": "Apply log as a preprocessing",
-         "type": "checkbox",
-         "default_value": true
-      },
-      {
-         "default_value": "0",
-         "id": "mode",
-         "label": "Mode",
-         "type": "selection_radio",
-         "values": {
-            "nl-means": "0",
-            "least square": "1",
-            "non-negative least square": "2"
-         }
-      },
-      {
-         "id": "chsim",
-         "label": "Channels (similarity)",
-         "comments": "List of indexes (between 1 and 17) separated by spaces",
-         "type": "text",
-         "values": {
-            "default": "1 2 3 4 5 6 7 8 9 10 11 12 13",
-            "maxlength": 50
-         }
-      },
-      {
-         "id": "chanom",
-         "label": "Channels (anomalies)",
-         "comments": "List of indexes (between 1 and 17) separated by spaces",
-         "type": "text",
-         "values": {
-            "default": "14 15 16 17",
-            "maxlength": 50
-         }
-      },
-      {
-         "id": "excR",
-         "label": "Exclusion region (half size)",
-         "type": "range",
-         "values": {
-            "default": 25,
-            "max": 200,
-            "min": 0,
-            "step": 1
-         }
-      },
-      {
-         "id": "nbP",
-         "label": "Number of patches for the search",
-         "type": "range",
-         "values": {
-            "default": 16,
-            "max": 256,
-            "min": 1,
-            "step": 1
-         }
-      },
-      {
-         "id": "radius",
-         "label": "Radius",
-         "comments": "Radius of the disk used for the detection",
-         "type": "range",
-         "values": {
-            "default": 1,
-            "max": 32,
-            "min": 1,
-            "step": 1
-         }
-      },
-      {
-         "id": "nfa",
-         "label": "Log10NFA threshold",
-         "type": "range",
-         "values": {
-            "default": -2,
-            "max": 20,
-            "min": -20,
-            "step": 1
+            "none": 0,
+            "phase only transform": 1,
+            "DCT denoise": 2,
+            "TV denoise": 3,
+            "rank transform": 4
          }
       }
    ],
    "results": [
       {
          "contents": {
-            "Image C1": {
+            "input image": {
                "img": "pre_c1.png"
             },
-            "Model C1": {
+            "preprocessed image": {
                "img": "model_c1.png"
-            },
-            "Residual C1": {
-               "img": "res_c1.png"
-            },
-            "Image C2": {
-               "img": "pre_c2.png"
-            },
-            "Model C2": {
-               "img": "model_c2.png"
-            },
-            "Residual C2": {
-               "img": "res_c2.png"
-            },
-            "Residual (PCA2')": {
-               "img": "res.png"
-            },
-            "Detection": {
-               "img": "detection.png"
             }
          },
          "label": "PCA based visualization",
          "type": "gallery"
       },
       {
-         "contents": "desc_channels.txt",
-         "label": "Order of visualization of the channels",
+         "contents": "detection_results.txt",
+         "label": "detection_results",
          "type": "text_file"
-      },
-      {
-         "contents": {
-            "'Channel '+idx": {
-               "img": [
-                  "'pre_channel_'+idx+'.png'",
-                  "'model_channel_'+idx+'.png'",
-                  "'res_channel_'+idx+'.png'",
-                  "detection.png"
-               ],
-               "repeat": "info.nchannels"
-            }
-         },
-         "label": "Exhaustive visualization",
-         "type": "gallery"
       }
    ],
-   "run": "${demoextras}/run.sh ${virtualenv} $log $mode \"$chsim\" \"$chanom\" $excR $nbP $radius $nfa"
+   "run": "python main_ipol.py $input_0"
 }
