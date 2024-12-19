@@ -7,10 +7,6 @@ COPY requirements_ipol.txt requirements_ipol.txt
 RUN pip3 install --no-cache-dir -r requirements_ipol.txt && rm requirements_ipol.txt
 
 
-WORKDIR src/filters/CDS_ChambolleTV
-RUN make
-
-# RUN cd src/filters/CDS_ChambolleTV && make
 
 
 ENV bin /workdir/bin/
@@ -30,6 +26,13 @@ WORKDIR $bin
 
 # copy the code to $bin
 COPY . .
+
+
+
+# WORKDIR src/filters/CDS_ChambolleTV
+# RUN make
+RUN cd src/filters/CDS_ChambolleTV && make
+
 
 # the execution will happen in the folder /workdir/exec
 # it will be created by IPOL
