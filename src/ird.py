@@ -196,7 +196,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
     assert len(img_in.shape) == 2
 
     # step 1: preprocessing
-    img = preprocess(img_in, proc_type=preproc, proc_param=preproc_param)
+    img_preproc = preprocess(img_in, proc_type=preproc, proc_param=preproc_param)
 
     # step 2: compute the correlations of patch pairs
 
@@ -212,9 +212,9 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
 
     corr_periods = []
     if direction == "horizontal":
-        img = np.array(img.T)
+        img = np.array(img_preproc.T)
     else:
-        img = img
+        img = img_preproc
 
     corr_periods = compute_corr_periods(img, window_ratio, max_period) # period in [0, max_period]
 
@@ -258,6 +258,6 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
     nfa_binom[-(nb_neighbor+1):] = nb_periods
 
     if return_preproc:
-        return nfa_binom, img
+        return nfa_binom, img_preproc
     else:
         return nfa_binom
