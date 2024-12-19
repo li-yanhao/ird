@@ -10,16 +10,9 @@ import argparse
 
 import sys
 sys.path.append("/workdir/bin/src")
+sys.path.append("../src")
 from ird import detect_resampling
-from misc import rgb2luminance, ups_2d
-
-
-def rgb2luminance(img:np.ndarray):
-    if len(img.shape) == 2:
-        return img
-    if img.shape[2] == 1:
-        return img[:,:,0]
-    return 0.299 * img[:,:,0] + 0.587 * img[:,:,1] + 0.114 * img[:,:,2]
+from misc import rgb2luminance, resize
 
 
 def filter_by_nms(nfa_histo, threshold, jpeg_periods, max_period):
@@ -166,15 +159,14 @@ def main(args):
 
     # img = skimage.io.imread(args.input).astype(float)
     img = iio.read(args.input)
-    img = rgb2luminance(img)
 
     if args.apply_resize == "true":
         antialias = (args.antialias == "true")
-        img = ups_2d(img, z=args.r, mode=args.interp, antialias=antialias)
+        img = resize(img, z=args.r, interp=args.interp, antialias=antialias)
 
-    # if args.crop is not None:
-    #     x, y, w, h = tuple(args.crop)
-    #     img = img[y:y+h, x:x+w]
+    iio.write("img_orig.png", img)
+
+    img = rgb2luminance(img)
 
     if args.input.endswith(".jpg") or args.input.endswith(".jpeg"):
         is_jpeg = True
@@ -212,7 +204,7 @@ def main(args):
     nfa, img_preproc = detect_resampling(
             img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
             nb_neighbor=nb_neighbor, direction=direction, is_jpeg=is_jpeg, max_period=max_period, return_preproc=True)
-    print("Spent time:", time.time() - start)
+    print("Spent time:", time.time() - start, "s")
     print()
 
     # save preprocessed image
@@ -267,20 +259,12 @@ if __name__ == "__main__":
     # Add required positional arguments
     parser.add_argument("input", type=str, help="Path of the input file.")
     parser.add_argument("--direction", type=str, default="h", choices=["h", "v"])
-    # parser.add_argument('--crop', nargs=4, type=int, metavar=("x", "y", "w", "h"), default=None)
     parser.add_argument("-p", "--preproc", type=str, default="rt", choices=["rt", "tv", "dct", "phot", "none"])
     parser.add_argument("--apply_resize", type=str, default="false", choices=["true", "false"])
     parser.add_argument("-r", "--r", type=float, default=1.0)
-    parser.add_argument("--interp", type=str, default="bicubic", choices=["nearest-neighbor", "bilinear", "bicubic", "lanczos"])
+    parser.add_argument("--interp", type=str, default="bicubic", choices=["nearest", "bilinear", "bicubic", "lanczos"])
     parser.add_argument("--antialias", type=str, default="false", choices=["true", "false"])
     
-
-
-
-    # Add optional arguments
-    # parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
-    # parser.add_argument("-o", "--optional_value", type=int, default=42,
-    #                     help="An optional integer value. Default is 42.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -290,4 +274,4 @@ if __name__ == "__main__":
 
     ## RUN COMMAND
     # python main_ipol.py input_0.png -p $p --apply_resize $apply_resize --r $r --interp $interp 
-    # e.g. (local) python main_ipol.py ../test/plot_result/baboon_1.3.png -p $p --apply_resize $apply_resize --r $r --interp $interp --antialias $antialias
+    # e.g. (local) python main_ipol.py ../test/plot_result/baboon.png -p $p --apply_resize $apply_resize -r $r --interp $interp --antialias $antialias
