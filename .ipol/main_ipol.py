@@ -156,8 +156,8 @@ def test_one_file(fname:str):
             ax2.scatter(period, lognfa_list_vert[i], s=10, color="r")
 
     plt.tight_layout()
-    # plt.show()
-    plt.savefig("ipol_result.pdf")
+    plt.show()
+    
 
 
 def main(args):
@@ -219,12 +219,15 @@ def main(args):
 
     # visualize the results
     # fig = plt.figure(figsize=(16, 8))
+    results_to_print = []
+
     fig = plt.figure()
     plt.plot(orig_sz_arr, lognfa, "-", label="nfa")
     for i in range(len(orig_sz_arr)):
         d = orig_sz_arr[i]
         if lognfa[i] < -3:
-            print(f"NFA at distance {i}: {nfa[i]:.2E}")
+            
+            results_to_print.append((i, nfa[i]))
             if lognfa[i+1] < -3:
                 plt.text(d - 18, lognfa[i], f"{d}", c='r')
             else:
@@ -234,7 +237,15 @@ def main(args):
     plt.ylabel(r'$log_{10} \, NFA(d)$', fontsize=12)
     plt.xlabel("d", fontsize=12)
 
-    plt.show()
+    # plt.show()
+    plt.savefig("ipol_result.pdf")
+
+    if len(results_to_print) == 0:
+        print("No resampling traces detected.")
+    else:
+        print("Detected resampling traces as the abnormal spectral correlation at certain distances:")
+        for d, nfa in results_to_print:
+            print(f"NFA at distance {i}: {nfa[i]:.2E}")
 
 
 if __name__ == "__main__":

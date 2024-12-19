@@ -31,16 +31,48 @@
    ],
    "params": [
       {
-         "id": "preproc",
+         "id": "apply_resize",
+         "label": "<br>Apply resizing<br><br>",
+         "comments": "Check for resizing the image before testing the algorithm",
+         "type": "checkbox"
+      },
+      {
+         "id": "r",
+         "label": "Resizing Rate",
+         "default_value": 1,
+         "values": {
+            "default": 1.3,
+            "max": 8,
+            "step": 0.01,
+            "min": 0.1
+         },
+         "visible": "params.apply_resize",
+         "type": "range"
+      },
+      {
+         "id": "interp",
+         "label": "Interpolator",
+         "type": "selection_collapsed",
+         "default_value": "bicubic",
+         "values": {
+            "nearest-neighbor": "nearest-neighbor",
+            "bilinear": "bilinear",
+            "bicubic": "bicubic",
+            "lanczos": "lanczos"
+         },
+         "visible": "params.apply_resize"
+      },
+      {
+         "id": "p",
          "label": "Preprocessing",
          "type": "selection_collapsed",
-         "default_value": 0,
+         "default_value": "rt",
          "values": {
-            "none": 0,
-            "phase only transform": 1,
-            "DCT denoise": 2,
-            "TV denoise": 3,
-            "rank transform": 4
+            "none": "none",
+            "phase only transform": "phot",
+            "DCT denoise": "dct",
+            "TV denoise": "tv",
+            "rank transform": "rt"
          }
       }
    ],
@@ -48,20 +80,23 @@
       {
          "contents": {
             "input image": {
-               "img": "pre_c1.png"
+               "img": "input_0.png"
             },
             "preprocessed image": {
-               "img": "model_c1.png"
+               "img": "preproc.png"
+            },
+            "result": {
+               "img": "ipol_result.pdf"
             }
          },
          "label": "PCA based visualization",
          "type": "gallery"
       },
       {
-         "contents": "detection_results.txt",
-         "label": "detection_results",
+         "contents": "stdout.txt",
+         "label": "<p>Output</p>",
          "type": "text_file"
       }
    ],
-   "run": "echo \"Installation successful.\""
+   "run": "python $bin/.ipol/main_ipol.py input_0.png -p $p --apply_resize $apply_resize -r $r --interp $interp "
 }
