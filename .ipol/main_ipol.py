@@ -257,7 +257,7 @@ def main(args):
     else:
         print("Detected resampling traces as the abnormal spectral correlation at certain distances:")
         for d, nfa in results_to_print:
-            print(f"NFA at distance {i}: {nfa[i]:.2E}")
+            print(f"NFA at distance {d}: {nfa:.2E}")
 
 
 if __name__ == "__main__":
