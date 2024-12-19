@@ -7,7 +7,7 @@ import skimage
 import argparse
 
 import sys
-sys.path.append("../src")
+sys.path.append("/workdir/bin/src")
 from ird import detect_resampling
 from misc import rgb2luminance
 
