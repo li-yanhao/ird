@@ -1,8 +1,8 @@
 iio==21
 joblib==1.4.2
 jpeglib==1.0.1
-numpy==2.2.0
-numba
+numba==0.60
+numpy
 opencv_python==4.10.0.84
 pandas==2.2.3
 Pillow==11.0.0
