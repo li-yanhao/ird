@@ -5,26 +5,19 @@
          "input_0.png": "Input image"
       },
       "params": [
-         "preprec"
+         "preproc"
       ]
    },
    "build": {
       "url": "git@github.com:li-yanhao/ird.git",
-      "rev": "origin/main",
+      "rev": "origin/ipol",
       "dockerfile": ".ipol/Dockerfile"
    },
    "general": {
       "timeout": 300,
       "demo_title": "Image resampling detection in Fourier domain",
-      "input_description": [
-         ""
-      ],
-      "param_description": [
-         ""
-      ],
-      "requirements": "DEBIAN_STABLE",
-      "custom_js": "/demo/clientApp/static/333330010009/extras.js",
-      "xlink_article": ""
+      "requirements": "docker",
+      "custom_js": "/demo/clientApp/static/333330010009/extras.js"
    },
    "inputs": [
       {
@@ -38,7 +31,7 @@
    ],
    "params": [
       {
-         "id": "preprec",
+         "id": "preproc",
          "label": "Preprocessing",
          "type": "selection_collapsed",
          "default_value": 0,
@@ -70,5 +63,5 @@
          "type": "text_file"
       }
    ],
-   "run": "python main_ipol.py $input_0"
+   "run": "echo \"Installation successful.\""
 }
