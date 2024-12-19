@@ -171,7 +171,8 @@ def main_experiment_classification(ratio:float, bidirect:bool, antialias:int):
         2: anti-aliasing by matlab
     """
 
-    num_neighbor = 15
+    # num_neighbor = 15
+    num_neighbor = 5 # debug
 
     target_size = 600
     # ratio = 1.3
@@ -241,7 +242,8 @@ def main_experiment_classification(ratio:float, bidirect:bool, antialias:int):
     np.set_printoptions(precision=3)
 
     if antialias == 0:
-        output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+        # output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_resa_ratio_{ratio:.2f}.csv"
+        output_fname = f"birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_neighbor_{num_neighbor}_resa_ratio_{ratio:.2f}.csv"  # debug
     elif antialias == 1:
         output_fname = f"results_antialias/birajdar_jpeg_q1_{jpeg_q1}_q2_{jpeg_q2}_antialias_gaussian_resa_ratio_{ratio:.2f}.csv"
     elif antialias == 2:
@@ -314,8 +316,8 @@ if __name__ == "__main__":
     # print(sys.argv)
     # ratio = float(sys.argv[1])
 
-    antialias = True
+    # antialias = False
 
-    for ratio in np.arange(0.6, 1.0+1e-5, 0.05):
-        main_experiment_classification(ratio, bidirect=False, antialias=1)
+    for ratio in np.arange(0.6, 1.6+1e-5, 0.1):
+        main_experiment_classification(ratio, bidirect=False, antialias=0)
         # main_experiment_estimation(ratio)

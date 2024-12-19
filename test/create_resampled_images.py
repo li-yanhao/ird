@@ -270,8 +270,8 @@ if __name__ == "__main__":
                         help='interpolator', default='bicubic')
     parser.add_argument('--q2', type=int, required=False,
                         help='post compression quality', default=80)
-    parser.add_argument('--antialias', type=int, required=False,
-                        help='antialias flag, 1 or 0', default=1)
+    parser.add_argument('--antialias', type=int, required=True,
+                        help='antialias flag, 1 or 0', default=0)
     parser.add_argument('--antialias_sigma_abs', type=float, required=False,
                         help='absolute sigma', default=0.8)
     args = parser.parse_args()

@@ -160,9 +160,14 @@ def test_one_file(fname:str):
 
 
 def main(args):
-    img = skimage.io.imread(args.input).astype(float)
+
+    # img = skimage.io.imread(args.input).astype(float)
+    img = iio.read(args.input)
     img = rgb2luminance(img)
 
+    if args.crop is not None:
+        x, y, w, h = tuple(args.crop)
+        img = img[y:y+h, x:x+w]
 
     if args.input.endswith(".jpg") or args.input.endswith(".jpeg"):
         is_jpeg = True
@@ -193,13 +198,15 @@ def main(args):
     window_ratio = 0.1
     nb_neighbor = 20
     
-    
+    import time
+    start = time.time()
     nfa = detect_resampling(
             img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
             nb_neighbor=nb_neighbor, direction=direction, is_jpeg=is_jpeg, max_period=max_period)
-    
-    print("nfa")
-    print(nfa)
+    print("Spent time:", time.time() - start)
+
+    # print("nfa")
+    # print(nfa)
 
 
     lognfa = np.log10(nfa + 1e-10)
@@ -229,9 +236,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Description of what your script does.")
 
     # Add required positional arguments
-    parser.add_argument("input", type=str, help="Path to the input file.")
+    parser.add_argument("input", type=str, help="Path of the input file.")
     parser.add_argument("--direction", type=str, default="h", choices=["h", "v"])
     parser.add_argument("--preproc", type=str, default="rt", choices=["rt", "tv", "dct", "phot", "none"])
+
+    parser.add_argument('--crop', nargs=4, type=int, metavar=("x", "y", "w", "h"), default=None)
+    
+
+
 
     # Add optional arguments
     # parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
