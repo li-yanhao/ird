@@ -9,7 +9,7 @@ import argparse
 import sys
 sys.path.append("/workdir/bin/src")
 from ird import detect_resampling
-from misc import rgb2luminance
+from misc import rgb2luminance, ups_2d
 
 
 def rgb2luminance(img:np.ndarray):
@@ -166,6 +166,10 @@ def main(args):
     img = iio.read(args.input)
     img = rgb2luminance(img)
 
+    if args.apply_resize == "true":
+        antialias = (args.antialias == "true")
+        img = ups_2d(img, z=args.r, mode=args.interp, antialias=antialias)
+
     # if args.crop is not None:
     #     x, y, w, h = tuple(args.crop)
     #     img = img[y:y+h, x:x+w]
@@ -260,6 +264,7 @@ if __name__ == "__main__":
     parser.add_argument("--apply_resize", type=str, default="false", choices=["true", "false"])
     parser.add_argument("-r", "--r", type=float, default=1.0)
     parser.add_argument("--interp", type=str, default="bicubic", choices=["nearest-neighbor", "bilinear", "bicubic", "lanczos"])
+    parser.add_argument("--antialias", type=str, default="false", choices=["true", "false"])
     
 
 
@@ -277,4 +282,4 @@ if __name__ == "__main__":
 
     ## RUN COMMAND
     # python main_ipol.py input_0.png -p $p --apply_resize $apply_resize --r $r --interp $interp 
-    # e.g. (local) python main_ipol.py ../test/plot_result/baboon_1.3.png -p $p --apply_resize $apply_resize --r $r --interp $interp 
+    # e.g. (local) python main_ipol.py ../test/plot_result/baboon_1.3.png -p $p --apply_resize $apply_resize --r $r --interp $interp --antialias $antialias
