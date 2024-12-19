@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from matplotlib import image
+
 import jpeglib
 import iio
 import skimage
@@ -207,12 +209,18 @@ def main(args):
     
     import time
     start = time.time()
-    nfa = detect_resampling(
+    nfa, img_preproc = detect_resampling(
             img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
-            nb_neighbor=nb_neighbor, direction=direction, is_jpeg=is_jpeg, max_period=max_period)
+            nb_neighbor=nb_neighbor, direction=direction, is_jpeg=is_jpeg, max_period=max_period, return_preproc=True)
     print("Spent time:", time.time() - start)
     print()
 
+    # save preprocessed image
+    image.imsave("img_preproc.png", img_preproc, cmap='gray')
+
+    # save spec
+    spec = np.fft.fft2(img_preproc, norm="ortho", axes=(0,1))
+    image.imsave("spec_preproc.png", np.log(np.abs(spec) + 1))
 
     # print("nfa")
     # print(nfa)
