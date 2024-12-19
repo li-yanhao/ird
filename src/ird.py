@@ -200,7 +200,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
 
     # step 2: compute the correlations of patch pairs
 
-    h, w = img.shape
+    h, w = img_preproc.shape
 
     if direction == "horizontal":
         nb_periods = w
