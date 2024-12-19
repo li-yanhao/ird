@@ -247,7 +247,7 @@ if __name__ == "__main__":
     # parser.add_argument('--crop', nargs=4, type=int, metavar=("x", "y", "w", "h"), default=None)
     parser.add_argument("-p", "--preproc", type=str, default="rt", choices=["rt", "tv", "dct", "phot", "none"])
     parser.add_argument("--apply_resize", type=str, default="false", choices=["true", "false"])
-    parser.add_argument("--r", type=float, default=1.0)
+    parser.add_argument("-r", "--r", type=float, default=1.0)
     parser.add_argument("--interp", type=str, default="bicubic", choices=["nearest-neighbor", "bilinear", "bicubic", "lanczos"])
     
 

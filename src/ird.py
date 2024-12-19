@@ -163,7 +163,7 @@ def preprocess(img:np.ndarray, proc_type:str, proc_param:dict={}) -> np.ndarray:
 
 
 def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_ratio:float,
-                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1):
+                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1, return_preproc:bool=False):
     """_summary_
 
     Parameters
@@ -257,4 +257,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
     nfa_binom[:nb_neighbor+2] = nb_periods
     nfa_binom[-(nb_neighbor+1):] = nb_periods
 
-    return nfa_binom
+    if return_preproc:
+        return nfa_binom, img
+    else:
+        return nfa_binom
