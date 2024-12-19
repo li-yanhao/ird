@@ -3,8 +3,8 @@
 FROM registry.ipol.im/ipol:v2-py3.10-tensorflow
 
 # copy the requirements.txt and install python packages
-COPY requirements.txt requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt
+COPY requirements_ipol.txt requirements_ipol.txt
+RUN pip3 install --no-cache-dir -r requirements_ipol.txt && rm requirements_ipol.txt
 
 
 RUN cd src/filters/CDS_ChambolleTV && make
