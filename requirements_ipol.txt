@@ -13,3 +13,5 @@ scikit_image==0.24.0
 torch
 tqdm==4.66.6
 matplotlib
+lightning==2.5.0.post0
+pytorch-lightning==2.5.0.post0
