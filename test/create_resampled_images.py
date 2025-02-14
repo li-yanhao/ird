@@ -15,7 +15,8 @@ from tqdm import tqdm
 
 import sys
 sys.path.append("../")
-from thread_pool_plus import ThreadPoolPlus
+# from thread_pool_plus import ThreadPoolPlus
+from src.resize_kernel_stretch import imresize
 
 
 WORKERS = 6
@@ -102,7 +103,7 @@ def augment_jpeg(img:np.ndarray, quality:int=-1) -> np.ndarray:
 
 
 def create_one_resampled_image(fname:str, downsample_by_2:bool, 
-                               antialias:bool, antialias_sigma:float,
+                               antialias:str, antialias_sigma:float,
                                ratio:float, interp:str, q1:int, q2:int, target_size:int):
     img = cv2.imread(fname)[:,:,::-1] 
     if downsample_by_2:
@@ -116,16 +117,40 @@ def create_one_resampled_image(fname:str, downsample_by_2:bool,
     
     # JPEG after resampling
     # img = augment_jpeg(img, quality=jpeg_q2)
-    if antialias:
-        img = skimage.filters.gaussian(img, sigma=antialias_sigma, preserve_range=True)
-        # print(f"DEBUG: gaussian filter with sigma={antialias_sigma}")
-    if abs(ratio - 1) > 1e-5:
-        if interp == "lanczos":
-            img_resa = ups_pil(img, z=ratio, mode=interp)
-        else:
-            img_resa = ups_2d(img, z=ratio, mode=interp, antialias=False)
-    else:
+    if abs(ratio - 1) < 1e-5:
         img_resa = np.array(img)
+    else:
+        if antialias is None:
+            if interp in ["lanczos", "nearest"]:
+                img_resa = ups_pil(img_resa, z=ratio, mode=interp)
+            else:
+                # img_resa = ups_2d(img_resa, z=ratio, mode=interp, antialias=False)
+                img_resa = imresize(img, scalar_scale=ratio, antialias=False)
+
+        elif antialias == "gaussian":
+            if ratio < 1:
+                antialias_sigma = antialias_sigma_abs * np.sqrt((1/ratio)**2-1)
+                img = skimage.filters.gaussian(img, sigma=antialias_sigma, preserve_range=True)
+            if interp == "lanczos":
+                img_resa = ups_pil(img_resa, z=ratio, mode=interp)
+            else:
+                img_resa = ups_2d(img_resa, z=ratio, mode=interp, antialias=False)
+
+        elif antialias == "kernel_stretch":
+            img_resa = imresize(img, scalar_scale=ratio, antialias=True)
+
+
+    # if antialias == "gaussian":
+    #     img = skimage.filters.gaussian(img, sigma=antialias_sigma, preserve_range=True)
+    #     # print(f"DEBUG: gaussian filter with sigma={antialias_sigma}")
+    # if abs(ratio - 1) > 1e-5:
+    #     if interp == "lanczos":
+    #         img_resa = ups_pil(img, z=ratio, mode=interp)
+    #     else:
+    #         img_resa = ups_2d(img, z=ratio, mode=interp, antialias=False)
+    # else:
+    #     img_resa = np.array(img)
+
     img_resa = center_crop(img_resa, target_size)
 
     img_resa = augment_jpeg(img_resa, quality=q2)
@@ -175,7 +200,7 @@ def create_resampled_images(target_size, interp, q2, antialias, antialias_sigma_
 
     # target_size = 600
     # ratios = np.arange(0.6, 1.0+1e-10, 0.05)
-    ratios = np.arange(0.6, 2.0+1e-10, 0.1)
+    ratios = np.arange(0.6, 1.6+1e-10, 0.1)
     # ratios = [0.95, 0.97, 0.98, 0.99, 1.01, 1.02, 1.03, 1.05]
     # ratios = [1]
 
@@ -188,16 +213,23 @@ def create_resampled_images(target_size, interp, q2, antialias, antialias_sigma_
     jpeg_q2 = q2
 
 
-    pool = ThreadPoolPlus(workers=WORKERS)
+    # pool = ThreadPoolPlus(workers=WORKERS)
 
     # for fname, orig_size, resa_size, interp, window_ratio, nb_neighbor, jpeg in exp_param_list:
         # img = skimage.io.imread(fname, as_gray=True)
     print("DEBUG")
+    # for ratio in ratios:
+    #     if antialias:
+    #         folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    #     else:
+    #         folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    #     os.makedirs(os.path.join(output_root, folder), exist_ok=True)
+
     for ratio in ratios:
-        if antialias:
-            folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
-        else:
+        if antialias is None:
             folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+        elif antialias in ["gaussian", "kernel_stretch"]:
+            folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_{antialias}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
         os.makedirs(os.path.join(output_root, folder), exist_ok=True)
 
     def task(fname, ratios):
@@ -221,16 +253,25 @@ def create_resampled_images(target_size, interp, q2, antialias, antialias_sigma_
                 img_resa = np.array(img_orig)
 
             else:
-                if ratio < 1 and antialias:
-                    antialias_sigma = antialias_sigma_abs * np.sqrt((1/ratio)**2-1)
-                    img = skimage.filters.gaussian(img_orig, sigma=antialias_sigma, preserve_range=True)
-                else:
-                    img = img_orig
+                if antialias is None:
+                    if interp in ["lanczos" or "nearest"]:
+                        img_resa = ups_pil(img_orig, z=ratio, mode=interp)
+                    else:
+                        # img_resa = ups_2d(img_orig, z=ratio, mode=interp, antialias=False)
+                        img_resa = imresize(img_orig, scalar_scale=ratio, antialias=False)
 
-                if interp == "lanczos":
-                    img_resa = ups_pil(img, z=ratio, mode=interp)
-                else:
-                    img_resa = ups_2d(img, z=ratio, mode=interp, antialias=False)
+                elif antialias == "gaussian":
+                    if ratio < 1:
+                        antialias_sigma = antialias_sigma_abs * np.sqrt((1/ratio)**2-1)
+                        img_resa = skimage.filters.gaussian(img_orig, sigma=antialias_sigma, preserve_range=True)
+                    if interp == "lanczos":
+                        img_resa = ups_pil(img_resa, z=ratio, mode=interp)
+                    else:
+                        img_resa = ups_2d(img_resa, z=ratio, mode=interp, antialias=False)
+                        
+                elif antialias == "kernel_stretch":  # only support bicubic and bilinear
+                    img_resa = imresize(img_orig, scalar_scale=ratio, antialias=True)
+
 
             img_resa = center_crop(img_resa, target_size)
 
@@ -239,10 +280,16 @@ def create_resampled_images(target_size, interp, q2, antialias, antialias_sigma_
 
             img_resa = np.clip(np.round(img_resa), 0, 255).astype(np.uint8)
             # folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
-            if antialias:
-                folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
-            else:
+
+            if antialias is None:
                 folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+            elif antialias in ["gaussian", "kernel_stretch"]:
+                folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_{antialias}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+            
+            # if antialias:
+            #     folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}_antialias/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+            # else:
+            #     folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
             if jpeg_q2 == -1:
                 out_fname = os.path.join(output_root, folder, os.path.basename(fname))
                 skimage.io.imsave(out_fname, img_resa)
@@ -262,6 +309,156 @@ def create_resampled_images(target_size, interp, q2, antialias, antialias_sigma_
     #     pool.pop_result()
 
 
+def random_from_intervals(intervals:list):
+    # intervals: [[min0, max0], [min1,max1], ...]
+
+    total_length = 0
+    lengths = []
+    for interval in intervals:
+        vmin, vmax = interval[0], interval[1]
+        if vmin >= vmax:
+            raise Exception("Each interval must be in [vmin, vmax]")
+        lengths.append(vmax - vmin + total_length)
+        total_length += vmax - vmin
+    
+    sampled_pos = np.random.uniform(0, total_length-1e-5)
+    interval_index = np.searchsorted(lengths, sampled_pos, side="left")
+    print("sampled_pos", sampled_pos)
+    print("interval_index", interval_index)
+
+    vmin, vmax = intervals[interval_index][0], intervals[interval_index][1]
+    sampled_value = np.random.uniform(vmin, vmax)
+
+    print("interval_index:", interval_index)
+    print("vmin:", vmin)
+    print("vmax:", vmax)
+    print("sampled_value:", sampled_value)
+
+    return sampled_value
+    
+
+
+def create_resampled_images_random_ratios(target_size, interp, q2, antialias, antialias_sigma_abs):
+    RUCHE = False
+    MAC = False
+    DAMAN = True
+
+    if RUCHE:
+        raw_img_folder = "/gpfs/workdir/liy/datasets/raise"
+        downsample_by_2 = True
+        output_root = "/gpfs/workdir/liy/ird/test/data"  # ruche
+        WORKERS = 20
+
+    elif MAC:
+        # raw_img_folder = "/Volumes/HPP900/data/raise_cropped"
+        raw_img_folder = "/Users/yli/phd/synthetic_image_detection/hongkong/data/raise_cropped"
+        downsample_by_2 = False
+
+        # output_root = "/Users/yli/phd/synthetic_image_detection/hongkong/data/resample_detection/"
+        output_root = "data/resample_detection/"
+        WORKERS = 6
+
+    elif DAMAN:
+        raw_img_folder = "data/raise_cropped"
+        downsample_by_2 = False
+        output_root = "data/resample_detection/"
+        WORKERS = 32
+
+
+    # raw_img_folder = "../data/raise"  # ruche
+    raw_img_fnames = glob.glob(os.path.join(raw_img_folder, "*.png"))
+    raw_img_fnames.sort()
+
+    ratio_min = 0.6
+    ratio_max = 1.6
+
+    jpeg_q1 = -1
+    jpeg_q2 = q2
+
+    resamplings_per_image = 5
+
+
+    if antialias is None:
+        folder = f"target_size_{target_size}/r_random_{ratio_min}_to_{ratio_max}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    elif antialias in ["gaussian", "kernel_stretch"]:
+        folder = f"target_size_{target_size}/r_random_{ratio_min}_to_{ratio_max}/{interp}_{antialias}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+    os.makedirs(os.path.join(output_root, folder), exist_ok=True)
+
+
+    def task(fname, ratio_min, ratio_max):
+    
+        # img = cv2.imread(fname)[:,:,1].astype(float)  # green channel
+
+        img = cv2.imread(fname)[:,:,::-1] 
+        if downsample_by_2:
+            img = skimage.filters.gaussian(img, sigma=0.8*np.sqrt(3), preserve_range=True)
+            img = img[::2, ::2, :]  # for ruche images
+        img = rgb2luminance(img) # gray channel
+        
+        # JPEG before resampling
+        img_orig = augment_jpeg(img, quality=jpeg_q1)
+        # img = img.round()
+        
+        # JPEG after resampling
+        # img = augment_jpeg(img, quality=jpeg_q2)
+
+        for i in range(resamplings_per_image + 1):
+            if i == 0:
+                ratio = 1
+            else:
+                ratio = random_from_intervals([[ratio_min, 0.98], [1.02, ratio_max]])
+
+            if abs(ratio - 1) <= 1e-5:
+                img_resa = np.array(img_orig)
+
+            else:
+                if antialias is None:
+                    if interp == "lanczos":
+                        img_resa = ups_pil(img_orig, z=ratio, mode=interp)
+                    else:
+                        img_resa = ups_2d(img_orig, z=ratio, mode=interp, antialias=False)
+
+                elif antialias == "gaussian":
+                    if ratio < 1:
+                        antialias_sigma = antialias_sigma_abs * np.sqrt((1/ratio)**2-1)
+                        img_resa = skimage.filters.gaussian(img_orig, sigma=antialias_sigma, preserve_range=True)
+                    if interp == "lanczos":
+                        img_resa = ups_pil(img_resa, z=ratio, mode=interp)
+                    else:
+                        img_resa = ups_2d(img_resa, z=ratio, mode=interp, antialias=False)
+                        
+                elif antialias == "kernel_stretch":  # only support bicubic and bilinear
+                    img_resa = imresize(img_orig, scalar_scale=ratio)
+
+
+            img_resa = center_crop(img_resa, target_size)
+
+            # if img_resa.shape != (target_size, target_size):
+            #     continue
+
+            img_resa = np.clip(np.round(img_resa), 0, 255).astype(np.uint8)
+            # folder = f"target_size_{target_size}/r_{ratio:.2f}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+
+            if antialias is None:
+                folder = f"target_size_{target_size}/r_random_{ratio_min}_to_{ratio_max}/{interp}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+            elif antialias in ["gaussian", "kernel_stretch"]:
+                folder = f"target_size_{target_size}/r_random_{ratio_min}_to_{ratio_max}/{interp}_{antialias}/jpeg_q1{jpeg_q1}/jpeg_q2{jpeg_q2}"
+            
+            
+            if jpeg_q2 == -1:
+                out_fname = os.path.join(output_root, folder, os.path.basename(fname)[:-4] + f"_r_{ratio:.2f}.png")
+                skimage.io.imsave(out_fname, img_resa)
+                print(f"Saved resampled image at {out_fname}")
+            else:
+                out_fname = os.path.join(output_root, folder, os.path.basename(fname)[:-4] + f"_r_{ratio:.2f}.jpg")
+                skimage.io.imsave(out_fname, img_resa, quality=jpeg_q2)
+                print(f"Saved resampled image at {out_fname}")
+
+
+    results = Parallel(n_jobs=WORKERS)(delayed(task)(raw_img_fname, ratio_min, ratio_max) for raw_img_fname in tqdm(raw_img_fnames))
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--size', type=int, required=False,
@@ -271,7 +468,8 @@ if __name__ == "__main__":
     parser.add_argument('--q2', type=int, required=False,
                         help='post compression quality', default=80)
     parser.add_argument('--antialias', type=int, required=True,
-                        help='antialias flag, 1 or 0', default=0)
+                        help='antialias flag, 0: no antialiasing; 1: antialiasing with Gaussian blur; 2: antialiasing with kernel stretching', 
+                        default=0)
     parser.add_argument('--antialias_sigma_abs', type=float, required=False,
                         help='absolute sigma', default=0.8)
     args = parser.parse_args()
@@ -280,13 +478,24 @@ if __name__ == "__main__":
     interp = args.interp
     q2 = args.q2
 
+    # if args.antialias == 0:
+    #     antialias = False
+    # else:
+    #     antialias = True  # type 1
+
     if args.antialias == 0:
-        antialias = False
+        antialias = None
+    elif args.antialias == 1:
+        antialias = "gaussian"
     else:
-        antialias = True  # type 1
+        antialias = "kernel_stretch"
 
     antialias_sigma_abs = args.antialias_sigma_abs
 
     create_resampled_images(target_size=target_size, interp=interp, q2=q2, 
                             antialias=antialias, antialias_sigma_abs=antialias_sigma_abs)
 
+    # create_resampled_images_random_ratios(target_size=target_size, interp=interp, q2=q2, 
+    #                         antialias=antialias, antialias_sigma_abs=antialias_sigma_abs)
+
+# python create_resampled_images.py --q2 -1 --antialias 0 --size 256

@@ -130,6 +130,10 @@ csv_list_image_size = {
     600: glob.glob("raw_result/impact_interpolator/impact_interpolator_bicubic_*"), # debug
     700: glob.glob("raw_result/impact_size/impact_size_700_resa_ratio_*.csv"),
     800: glob.glob("raw_result/impact_size/impact_size_800_resa_ratio_*.csv"),
+
+    # 256: glob.glob("raw_result/compare_with_nn/compare_with_nn_256*.csv"), # antialiasing with kernel stretch
+    256: glob.glob("raw_result/compare_with_nn/discrete_ratio_no_antialias_*.csv"), # no antialiasing 
+
 }
 
 csv_list_interp_antialias = {
@@ -191,6 +195,10 @@ csv_list_preprocess = {
 }  # jpeg_quality -> preprocess_type
 
 
+csv_list_random_ratio = {
+    # "ird": glob.glob("raw_result/compare_with_nn/real_ratio_random_resa_ratio.csv"),
+    "ird": glob.glob("raw_result/compare_with_nn/real_ratio_no_antialias_random_resa_ratio.csv"),
+}
 
 
 def print_info(*text):
@@ -545,6 +553,49 @@ def load_ird(csv_fname_list, do_nms_jpeg:bool): # ours
     # return ratios, scores
 
 
+
+def load_ird_mixed_ratios(csv_fname_list, do_nms_jpeg:bool): # ours
+    print_info("Our method")
+
+    df_list = []
+    for csv_fname in csv_fname_list:
+        df = pd.read_csv(csv_fname)
+        df_list.append(df)
+    df =  pd.concat(df_list)
+    print(df)
+
+    df_original = df.query(f'abs(resa_ratio - 1.0) < 1e-5')
+    nfa_histos = np.vstack(df_original['nfa'].apply(lambda x: np.fromstring(x[1:-1], dtype=float, sep=" ")))
+
+    fpr = 0.01
+
+    min_nfas = np.min(nfa_histos, axis=1)
+    threshold = np.sort(min_nfas)[int(fpr * len(min_nfas))]
+
+    current_size = df["target_size"].values[0]
+    print("current_size:", current_size)
+    max_period = nfa_histos.shape[1]
+
+    if do_nms_jpeg:
+        print_info("initial threshold:", threshold)
+        jpeg_periods = np.arange(round(current_size / 8), max_period, round(current_size / 8))
+        threshold = iterative_threshold_with_nms(nfa_histos, target_fpr=fpr, init_threshold=threshold, anchor_periods=jpeg_periods)
+        print_info("new threshold:", threshold)
+
+    print(f"Ours, at FPR={fpr:.3f}: the threshold is {threshold}")
+
+    df_resa_ratio = df.query(f'abs(resa_ratio - {1.0}) > 1e-5')
+    nfa_histos = np.vstack(df_resa_ratio['nfa'].apply(lambda x: np.fromstring(x[1:-1], dtype=float, sep=" ")))
+
+    if do_nms_jpeg:
+        nfa_histos, _ = filter_by_nms(nfa_histos=nfa_histos, threshold=threshold, anchor_periods=jpeg_periods)
+
+    min_nfa_one_ratio = np.min(nfa_histos, axis=1)
+
+    recall = (min_nfa_one_ratio < threshold).mean()
+    print(f"recall for mixed resampling ratios:", recall)
+
+
 def print_accuracies():
 
     # load_birajdar(csv_list_uncompressed["birajdar"])
@@ -568,9 +619,10 @@ def print_accuracies():
     # load_popescu(csv_list_q90["popescu"])
 
     # load_ird(csv_list_uncompressed["ird"], do_nms_jpeg=False)  # ok
-    load_ird(csv_list_q95["ird"], do_nms_jpeg=True)  # ok
+    # load_ird(csv_list_q95["ird"], do_nms_jpeg=True)  # ok
     # load_ird(csv_list_q90["ird"], do_nms_jpeg=True)  # ok
 
+    load_ird_mixed_ratios(csv_list_random_ratio["ird"], do_nms_jpeg=False)
 
 
 def plot_roc_curves_comparison(q:int, antialias:int):
@@ -741,12 +793,12 @@ def plot_ablation_preprocess(q:int):
 
 
 def plot_ablation_size():
-    size_list = [300, 400, 500, 600]
+    # size_list = [300, 400, 500, 600]
     # size_list = [300, 400, 500, 600, 700, 800]
-    # size_list = [600]
+    size_list = [256]
 
     # additional step: use pre-fixed ratios
-    fixed_ratios = np.arange(0.6, 2.0+1e-5, 0.1)
+    fixed_ratios = np.arange(0.6, 1.6+1e-5, 0.1)
 
 
     fpr = 0.01
@@ -767,7 +819,7 @@ def plot_ablation_size():
 
         # ratio_valid_mask = np.abs(ratios - 1) > 1e-5
         # scores_ratios_valid = scores_ratios[ratio_valid_mask]
-        
+
         # ratios_valid = ratios[ratio_valid_mask]
         # scores_ratios_valid = scores_ratios[ratio_valid_mask]
 
@@ -1058,9 +1110,8 @@ def plot_bars_jpeg():
     plt.show()
 
     
-
 if __name__ == "__main__":
-    # print_accuracies()
+    print_accuracies()
     # plot_roc_curves_comparison(q=90, antialias=False)
     # plot_ablation_preprocess(q=90)
     # plot_ablation_size()
@@ -1071,4 +1122,4 @@ if __name__ == "__main__":
 
     # plot_roc_curves_comparison(q=-1, antialias=1)
 
-    plot_bars_jpeg()
+    # plot_bars_jpeg()

@@ -163,7 +163,7 @@ def preprocess(img:np.ndarray, proc_type:str, proc_param:dict={}) -> np.ndarray:
 
 
 def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_ratio:float,
-                      nb_neighbor:int, direction:str, is_jpeg:bool, max_period:int=-1, return_preproc:bool=False):
+                      nb_neighbor:int, direction:str, suppress_jpeg:bool, max_period:int=-1, return_preproc:bool=False):
     """_summary_
 
     Parameters
@@ -180,7 +180,7 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
         _description_
     direction : str
         _description_
-    is_jpeg : bool
+    suppress_jpeg : bool
         _description_
     max_period : int, optional
         _description_, by default -1
@@ -223,18 +223,15 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
 
     mask_valid_period = np.ones(max_period+1, dtype=bool)
     mask_valid_period[0] = False
-    if is_jpeg:
+    if suppress_jpeg:
         for i in range(1, 8):
             period = int(np.round(i / 8 * nb_periods))
 
             # assume the size is multiple of 8
             if period < max_period:
-                mask_valid_period[period-2] = False
-                mask_valid_period[period-1] = False
-                mask_valid_period[period] = False
-                mask_valid_period[period+1] = False
-                mask_valid_period[period+2] = False
-
+                for j in range(-3, 4):
+                    mask_valid_period[period+j] = False
+                    
     corr_periods_valid = corr_periods[mask_valid_period, :]
 
     peak_mask = _bool_lateral_maxima(corr_periods_valid, axis=0, order=nb_neighbor, exclude_range=1, lateral='both')

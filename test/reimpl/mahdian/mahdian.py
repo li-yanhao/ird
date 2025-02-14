@@ -256,7 +256,6 @@ def main_experiment(ratio:float, bidirect:bool, antialias:int):
         else:
             saliency_map = mahdian_detector(img, num_neighbor, is_jpeg)
 
-
         saliency = np.max(saliency_map[num_neighbor//2: -num_neighbor//2])
 
         df_data["fname"].append(fname)
