@@ -7,8 +7,6 @@ COPY requirements_ipol.txt requirements_ipol.txt
 RUN pip3 install --no-cache-dir -r requirements_ipol.txt && rm requirements_ipol.txt
 
 
-
-
 ENV bin /workdir/bin/
 RUN mkdir -p $bin/tmp
 
@@ -20,8 +18,8 @@ WORKDIR $bin
 #     && unzip checkpoints.zip \
 #     && rm checkpoints.zip
 
-# RUN mkdir -p src/third_party/SyntheticImagesAnalysis/DenoiserWeight \
-#     && wget https://cirrus.universite-paris-saclay.fr/s/AyZbytJAmEymJNb/download/model_best.th -P src/third_party/SyntheticImagesAnalysis/DenoiserWeight/
+RUN mkdir -p src/classifier/ckpt \
+    && wget http://avocat.ovh.hw.ipol.im/static/yanhao/ird/best-epoch=60-val_loss=0.49.ckpt -P src/classifier/ckpt/
 
 
 # copy the code to $bin

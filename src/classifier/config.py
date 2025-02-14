@@ -30,4 +30,5 @@ class Config:
         # preprocess        
         self.preprocess = "none"
 
-        self.ckpt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ckpt/best-epoch=60-val_loss=0.49.ckpt")
+        # self.ckpt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ckpt/best-epoch=60-val_loss=0.49.ckpt")
+        self.ckpt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ckpt/best-epoch.ckpt")
