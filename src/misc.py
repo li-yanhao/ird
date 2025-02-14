@@ -306,8 +306,8 @@ def compute_kq_list_score(kq_list:list):
         0: 1000,
         1: 1000,
         2: 100,
-        4: 10,
-        3: 1,
+        3: 10,
+        4: 1,
     }
 
     k, q = kq_list[0]
