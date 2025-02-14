@@ -131,7 +131,7 @@ def main(args):
 
     if args.apply_recompress == "true":
         suppress_jpeg = True
-    if (args.input.endswith(".jpg") or args.input.endswith(".jpeg")) and args.apply_resize == "false":
+    if (args.input.lower().endswith(".jpg") or args.input.lower().endswith(".jpeg")) and args.apply_resize == "false":
         suppress_jpeg = True
     elif args.suppress_jpeg == "true":
         suppress_jpeg = True
@@ -232,22 +232,24 @@ def main(args):
 
 
     # TODO: make the workflow
-    ranges, logits = predict_rate_range(img, config=Config())  # already sorted by logits
+    ranges_sorted, logits_sorted = predict_rate_range(img, config=Config())  # already sorted by logits
     # print("logits:", logits)
     # print("ranges:", ranges)
-    if logits[0] > 0 and logits[1] < 0: # only one possible range
-        ranges = [ranges[0]]
+    if logits_sorted[0] > 0 and logits_sorted[1] < 0: # only one possible range
+        ranges_jpeg = [ranges_sorted[0]]
     else:
-        ranges = [ranges[0], ranges[1]]
+        ranges_jpeg = [ranges_sorted[0], ranges_sorted[1]]
+
+    ranges_non_jpeg = [ranges_sorted[0], ranges_sorted[1], ranges_sorted[2]]
 
     d_list = [d for d,_ in pairs_d_nfa]
     # print("d_list:", d_list)
     M_list = []
     if len(d_list) > 2:  # the image was likely to be a JPEG image
-        for rate_range in ranges:
+        for rate_range in ranges_jpeg:
             M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
     else:
-        for rate_range in ranges:
+        for rate_range in ranges_non_jpeg:
             M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
 
 

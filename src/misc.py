@@ -281,10 +281,11 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
     # M_div8_best_list = [(M_div8, compute_kq_list_score(k_list)) for M_div8, k_list in M_div8_best_list]
 
     M_div8_best_list.sort(key=lambda x:x[1], reverse=True)
+
     # for M_div8, score in M_div8_best_list:
     #     print(f"M / 8 = {M_div8:.1f}, score = {score:d}")
-        # print(f"M / 8 = {M_div8:.1f}, vote = {vote:d}")
-        # show_matched_points(M_div8, d_list_final, N)
+    #     print(f"M / 8 = {M_div8:.1f}, vote = {vote:d}")
+    #     show_matched_points(M_div8, d_list_final, N)
 
 
     score_bset = M_div8_best_list[0][1]
