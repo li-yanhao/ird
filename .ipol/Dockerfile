@@ -19,7 +19,7 @@ WORKDIR $bin
 #     && rm checkpoints.zip
 
 RUN mkdir -p src/classifier/ckpt \
-    && wget http://avocat.ovh.hw.ipol.im/static/yanhao/ird/best-epoch=60-val_loss=0.49.ckpt -P src/classifier/ckpt/
+    && wget http://avocat.ovh.hw.ipol.im/static/yanhao/ird/best-epoch.ckpt -P src/classifier/ckpt/
 
 
 # copy the code to $bin
