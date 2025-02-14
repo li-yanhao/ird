@@ -84,6 +84,17 @@ def jpeg2luminance(fname:str):
     return u0
 
 
+def center_crop(img:np.ndarray, crop_size:int) -> np.ndarray:
+    h_orig, w_orig = img.shape[:2]
+    h_center, w_center = h_orig // 2, w_orig // 2
+    y1 = h_center - crop_size // 2
+    x1 = w_center - crop_size // 2
+    x1, y1 = max(0, x1), max(0, y1)
+    y2 = y1 + crop_size
+    x2 = x1 + crop_size
+    return img[y1:y2, x1:x2]
+
+
 def main(args):
 
     print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
@@ -104,7 +115,9 @@ def main(args):
         img = resize(img, z=args.r, interp=args.interp, antialias=antialias)
 
     if args.crop > 0:
-        img = img[:args.crop, :args.crop]
+        # img = img[:args.crop, :args.crop]
+        img = center_crop(img, args.crop)
+
     # iio.write("img_orig.png", img)
 
     img = np.clip(img, 0, 255).astype(np.uint8)
@@ -188,7 +201,6 @@ def main(args):
     for i in range(len(orig_sz_arr)):
         d = orig_sz_arr[i]
         if lognfa[i] < log_threshold:
-            
             pairs_d_nfa.append((i, float(nfa[i])))
             if lognfa[i+1] < -3:
                 plt.text(d - 18, lognfa[i], f"{d}", c='r')
