@@ -114,6 +114,11 @@ def main(args):
 
     if args.apply_resize == "true":
         antialias = (args.antialias == "true")
+
+        if args.crop > 0:
+            # pre-crop the image to reduce the processing time
+            img = center_crop(img, int(args.crop/args.r) + 5)
+            
         img = resize(img, z=args.r, interp=args.interp, antialias=antialias)
 
     if args.crop > 0:
