@@ -3,6 +3,7 @@ import torch
 from PIL import Image
 import cv2 
 from typing import List
+import copy
 
 
 def rgb2luminance(img:np.ndarray):
@@ -235,7 +236,6 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
     for M_div8 in M_div8_candidates:
         # vote = 0
         map_d_to_kq_list = {d: [] for d in d_list_final}  # {d0: [(k,q),(k,q)], ...} d = k * M/8 + q * N/8  mod  N
-        
         # k_list = []
         # brute force search
         for k_test in range(-8, 9):
@@ -288,14 +288,15 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
     #     show_matched_points(M_div8, d_list_final, N)
 
 
-    score_bset = M_div8_best_list[0][1]
-    M_div8_best_list = [pair for pair in M_div8_best_list if pair[1] == score_bset]
+    score_best = M_div8_best_list[0][1]
+    M_div8_best_list = [pair for pair in M_div8_best_list if pair[1] == score_best]
     M_list_final = [ int(pair[0] * 8) for pair in  M_div8_best_list]
 
     # print("M_div8_best_list:", M_div8_best_list)
     # print("M_list_final:", M_list_final)
 
-    # return int(M_div8_best_list[0][0] * 8)
+    M_list_final = group_close_value(M_list_final)
+
     return M_list_final
 
 
@@ -317,31 +318,115 @@ def compute_kq_list_score(kq_list:list):
     score = score_map[kmin] * 10 + score_map[qmin]
     return score 
 
-    # as many 0 or 1 as possible
-    if (1 in k_list_abs) or (8 in k_list_abs):
-        return 1000
-    elif (4 in k_list_abs):
-        return 100
-    elif (2 in k_list_abs):
-        return 10
-    elif (6 in k_list_abs) or (3 in k_list_abs) or (5 in k_list_abs) or (7 in k_list_abs):
-        return 1
-    return 0
-    
+def group_close_value(l:list, eps=2) -> list:
+    if len(l) == 0: return []
+    l_final = []
+    d_cluster = [copy.deepcopy(l[0])]
+    idx = 1
+    while idx < len(l):
+        if l[idx] - d_cluster[-1] > eps:
+            # take the median, and clear the cluster
+            l_final.append(copy.deepcopy(d_cluster[len(d_cluster) // 2]))
+            d_cluster = []
+        d_cluster.append(copy.deepcopy(l[idx]))
+        idx += 1
+    l_final.append(d_cluster[len(d_cluster) // 2])
+
+    return l_final
+
 
 def estimate_original_size_non_jpeg(d_list:list, N:int, rate_range:list, eps:int=2):
-    M_candidates = []
-    for d in d_list:
-        M_candidates.append(d)
-        M_candidates.append(N - d)
-        M_candidates.append(N + d)
-        M_candidates.append(2*N - d)
-    M_list = []
-    # for rate_range in rate_ranges:
-    for M in M_candidates:
-        if N/ M >= rate_range[0] and N/ M < rate_range[1]:
-            M_list.append(M)
-    return M_list
+    d_list = np.array(d_list)
+    d_list_redundant:np.ndarray = np.concatenate([d_list, N-d_list])
+    d_list_redundant.sort()
+
+    d_list_final = group_close_value(d_list_redundant)
+
+    # step 2: count the vote for each M
+    d_list_final = np.array(d_list_final)
+    M_candidates_ = []
+    # d = kM + qN
+    for k in [-2, -1, 1, 2]:
+        for d in d_list_final:
+            q = 0
+            M = d / k
+            # while rate_range[0] <= N/M and N/M < rate_range[1]:
+            while N/M > 1/2:
+                M_candidates_.append(M)
+                if k > 0:
+                    q = q - 1
+                else:
+                    q = q + 1
+                M = (d - q * N) / k
+    
+    if len(M_candidates_) == 0:
+        return []
+
+    # for k in range(1, 4):
+    #     for d in d_list_final:
+    #         point_set.append((k,d))
+    #         point_set.append((k,d + N))
+    #         point_set.append((k,d + 2*N))
+    # M_div8_candidates_ = [d / k for (k,d) in point_set]
+    M_candidates_.sort()
+
+    map_k_to_score = {
+        0: 0,
+        1: 1000,
+        2: 100,
+        3: 10,
+    }
+
+    vote_best = -1
+    M_and_score_best_list = []
+    for M in M_candidates_:
+        map_d_to_k = {int(d): 0 for d in d_list_final}
+        if N / M >= rate_range[0] and N/ M < rate_range[1]:
+            for k in [-2, -1, 1, 2]:
+                d_test = (M * k) % N
+                for dd in map_d_to_k.keys():
+                    if abs(dd - d_test) <= eps:
+                        map_d_to_k[dd] = k
+    
+        vote = sum(k != 0 for k in map_d_to_k.values())
+        score = sum(map_k_to_score[abs(k)] for k in map_d_to_k.values())
+
+        # print("M={}, vote={}, score={}, map_d_to_k={}".format(M, vote, score, map_d_to_k))
+        # vote-based
+        if vote > vote_best:
+            vote_best = vote
+            M_and_score_best_list = [(M, score)]
+        elif vote == vote_best:
+            M_and_score_best_list.append((M, score))
+    
+
+    M_and_score_best_list.sort(key=lambda k_and_score:k_and_score[1], reverse=True)
+
+    score_best = M_and_score_best_list[0][1]
+    M_and_score_best_list = [k_and_score for k_and_score in M_and_score_best_list if k_and_score[1] == score_best]
+    M_list_final = [ int(k_and_score[0]) for k_and_score in  M_and_score_best_list ]
+    
+    M_list_final = group_close_value(M_list_final)
+
+    return M_list_final
+
+
+def compute_k_list_score(k_list:list):
+    if len(k_list) == 0: return 0
+
+    score_map = {
+        0: 1000,
+        1: 1000,
+        2: 100,
+        3: 10,
+        4: 1,
+    }
+
+    k = k_list[0]
+    kmin = min(k % 8, (-k) % 8)
+    qmin = min(q % 8, (-q) % 8)
+    score = score_map[kmin] * 10 + score_map[qmin]
+    return score 
 
 
 def show_matched_points(M_div8, d_list, N, eps=2):

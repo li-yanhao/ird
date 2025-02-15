@@ -109,6 +109,8 @@ def main(args):
     #     img = rgb2luminance(img)
 
     img = skimage.io.imread(args.input).astype(float)
+    if np.ndim(img) == 3:
+        img = img[:,:,:3]  # if RGBA, take only RGB
 
     if args.apply_resize == "true":
         antialias = (args.antialias == "true")
@@ -243,40 +245,20 @@ def main(args):
     ranges_non_jpeg = [ranges_sorted[0], ranges_sorted[1], ranges_sorted[2]]
 
     d_list = [d for d,_ in pairs_d_nfa]
-    # print("d_list:", d_list)
+
+    print("The method is run successfully in {:.2f} s.".format(time.time() - start))
+    print()
+
     M_list = []
     if len(d_list) > 2:  # the image was likely to be a JPEG image
+        # print("The original image is likely to be a JPEG image")
         for rate_range in ranges_jpeg:
             M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
     else:
+        # print("The original image is unlikely to be a JPEG image")
         for rate_range in ranges_non_jpeg:
             M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
 
-
-    # pairs_d_nfa.sort(key=lambda x:x[1])
-    # pairs_d_nfa = pairs_d_nfa[:1]
-
-    # # N = img.shape[1]
-    # M_candidates = []
-    # for d, nfa in pairs_d_nfa:
-    #     M_candidates.append(d)
-    #     M_candidates.append(N - d)
-    #     M_candidates.append(N + d)
-    #     M_candidates.append(2*N - d)
-                
-    # M_candidates.sort()
-
-    # rate_list = [ N/M for M in M_list]
-
-    # explain results
-    print("The method is run successfully in {:.2f} s.".format(time.time() - start))
-    print()
-    # if len(M_jpeg_list) > 0:
-    #     M_jpeg_set = set(M_jpeg_list)
-    #     print(f"If the original image is JPEG-compressed, the estimated original sizes M and the estimated resampling" +
-    #             f" rates are:")
-    #     for M_jpeg in M_jpeg_set:
-    #         print(f"  M={M_jpeg:d}, r={N/M_jpeg:.2f}")
     print_results(N, M_list)
 
 
