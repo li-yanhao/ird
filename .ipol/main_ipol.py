@@ -133,7 +133,7 @@ def main(args):
 
     if args.apply_recompress == "true":
         suppress_jpeg = True
-    if (args.input.lower().endswith(".jpg") or args.input.lower().endswith(".jpeg")) and args.apply_resize == "false":
+    elif (args.input.lower().endswith(".jpg") or args.input.lower().endswith(".jpeg")) and args.apply_resize == "false":
         suppress_jpeg = True
     elif args.suppress_jpeg == "true":
         suppress_jpeg = True
