@@ -304,10 +304,10 @@ def cross_validate(nfa_0:np.ndarray, nfa_1:np.ndarray, rg:int):
 
 def main_bidirection(args):
 
-    print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
+    # print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
     # print("N.B.: The resampling rate is assumed to be smaller than 2.")
-    print()
-    print()
+    # print()
+    # print()
 
     img = skimage.io.imread(args.input).astype(float)
     if np.ndim(img) == 3:
