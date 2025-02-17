@@ -223,8 +223,12 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
     M_div8_candidates = []
 
     # for rate_range in rate_ranges:
-    for M_div8 in M_div8_candidates_:
-        if N/(M_div8*8) >= rate_range[0] and N/(M_div8*8) < rate_range[1]:
+    # for M_div8 in M_div8_candidates_:
+        # if N/(M_div8*8) >= rate_range[0] and N/(M_div8*8) < rate_range[1]:
+            # M_div8_candidates.append(M_div8)
+
+    for M_div8 in M_div8_candidates_:  # debug x16
+        if N/(M_div8*16) >= rate_range[0] and N/(M_div8*16) < rate_range[1]:
             M_div8_candidates.append(M_div8)
 
 
@@ -238,21 +242,22 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
         map_d_to_kq_list = {d: [] for d in d_list_final}  # {d0: [(k,q),(k,q)], ...} d = k * M/8 + q * N/8  mod  N
         # k_list = []
         # brute force search
-        for k_test in range(-8, 9):
+        # for k_test in list(range(-8, 9)) + [-16, 16]:
+        for k_test in list(range(-16, 17)) + [-32, 32]:  # debug x16
             # for q_test in range(-1, 2):
-            for q_test in range(-7,8):
+            for q_test in range(-2,3):
                 # d_test = M_div8 * k_test - q_test * N + qq_test * N/8
                 d_test = int(M_div8 * k_test + q_test * N/8) % N
                 for dd in map_d_to_kq_list.keys():
                     if abs(dd - d_test) <= eps:
                         map_d_to_kq_list[dd].append((k_test, q_test))
-        for k_test in [-16,16]:
-            d_test = int(k_test * M_div8) % N
-            # if abs(M_div8 - 197) < 2:
-            #     print(f"M_div8={M_div8}, d_test={d_test}")
-            for dd in map_d_to_kq_list.keys():
-                if abs(dd - d_test) <= eps:
-                    map_d_to_kq_list[dd].append( (k_test, 0) )
+        # for k_test in [-16,16]:
+        #     d_test = int(k_test * M_div8) % N
+        #     # if abs(M_div8 - 197) < 2:
+        #     #     print(f"M_div8={M_div8}, d_test={d_test}")
+        #     for dd in map_d_to_kq_list.keys():
+        #         if abs(dd - d_test) <= eps:
+        #             map_d_to_kq_list[dd].append( (k_test, 0) )
         
         # score = sum(compute_kq_list_score(k_list) for k_list in map_d_to_kq_list.values())
         vote = sum(len(kq_list) != 0 for kq_list in map_d_to_kq_list.values())
@@ -282,18 +287,139 @@ def estimate_original_size_jpeg(d_list:list, N:int, rate_range:list, eps:int=2) 
 
     M_div8_best_list.sort(key=lambda x:x[1], reverse=True)
 
-    # for M_div8, score in M_div8_best_list:
-    #     print(f"M / 8 = {M_div8:.1f}, score = {score:d}")
-    #     print(f"M / 8 = {M_div8:.1f}, vote = {vote:d}")
-    #     show_matched_points(M_div8, d_list_final, N)
+    for M_div8, score in M_div8_best_list:
+        # print(f"M / 8 = {M_div8:.1f}, score = {score:d}")
+        # show_matched_points(M_div8, d_list_final, N)
+
+        print(f"M / 16 = {M_div8:.1f}, score = {score:d}")  # debug x16
+        show_matched_points(M_div8, d_list_final, N)
+
+    show_matched_points(115.5, d_list_final, N) # debug
 
 
     score_best = M_div8_best_list[0][1]
     M_div8_best_list = [pair for pair in M_div8_best_list if pair[1] == score_best]
-    M_list_final = [ int(pair[0] * 8) for pair in  M_div8_best_list]
+    # M_list_final = [ int(pair[0] * 8) for pair in  M_div8_best_list]
+    M_list_final = [ int(pair[0] * 16) for pair in  M_div8_best_list]  # debug x16
 
     # print("M_div8_best_list:", M_div8_best_list)
     # print("M_list_final:", M_list_final)
+
+    M_list_final = group_close_value(M_list_final)
+
+    return M_list_final
+
+
+
+def estimate_original_size_by_jpegx16(d_list:list, N:int, rate_range:list, eps:int=2) -> List[int]:
+    """Assuming the original image is JPEG-compressed, estimate the original size
+
+    Parameters
+    ----------
+    d_list : list
+        A list of correlation distances {d}
+    N : int
+        The size of the current image
+    eps : int, optional
+        range tolerance for avoiding replicated counts, by default 2
+    """
+    assert len(d_list) > 0
+
+    # step 1: cluster and neighboring suppression
+    d_list = np.array(d_list)
+    d_list_redundant:np.ndarray = np.concatenate([d_list, N-d_list])
+    d_list_redundant.sort()
+
+    d_list_final = []
+    d_cluster = [int(d_list_redundant[0])]
+    idx = 1
+    while idx < len(d_list_redundant):
+        if d_list_redundant[idx] - d_cluster[-1] > eps:
+            # take the median, and clear the cluster
+            d_list_final.append(int(d_cluster[len(d_cluster) // 2]))
+            d_cluster = []
+        d_cluster.append(int(d_list_redundant[idx]))
+        idx += 1
+    d_list_final.append(d_cluster[len(d_cluster) // 2])
+
+    # step 2: count the vote for each M
+    d_list_final = np.array(d_list_final)
+    point_set = []
+    for k in range(1, 16):
+        for d in d_list_final:
+            point_set.append((k,d))
+            point_set.append((k,d + N))
+            point_set.append((k,d + 2*N))
+    M_div16_candidates_ = [d / k for (k,d) in point_set]
+    M_div16_candidates_.sort()
+
+    M_div16_candidates = []
+
+    for M_div16 in M_div16_candidates_:  # debug x16
+        if N/(M_div16*16) >= rate_range[0] and N/(M_div16*16) < rate_range[1]:
+            M_div16_candidates.append(M_div16)
+
+
+    # M/8 * k - q N = d    
+    M_div16_best_list = []
+    # score_best = 0
+    vote_best = 0
+
+    for M_div16 in M_div16_candidates:
+        # vote = 0
+        map_d_to_kq_list = {d: [] for d in d_list_final}  # {d0: [(k,q),(k,q)], ...} d = k * M/8 + q * N/8  mod  N
+        # brute force search
+        for k_test in list(range(-16, 17)) + [-32, 32]:  # debug x16
+            for q_test in range(-2,3):
+                d_test = int(M_div16 * k_test + q_test * N/8) % N
+                for dd in map_d_to_kq_list.keys():
+                    if abs(dd - d_test) <= eps:
+                        map_d_to_kq_list[dd].append((k_test, q_test))
+        # for k_test in [-16,16]:
+        #     d_test = int(k_test * M_div16) % N
+        #     # if abs(M_div16 - 197) < 2:
+        #     #     print(f"M_div16={M_div16}, d_test={d_test}")
+        #     for dd in map_d_to_kq_list.keys():
+        #         if abs(dd - d_test) <= eps:
+        #             map_d_to_kq_list[dd].append( (k_test, 0) )
+        
+        # score = sum(compute_kq_list_score(k_list) for k_list in map_d_to_kq_list.values())
+        vote = sum(len(kq_list) != 0 for kq_list in map_d_to_kq_list.values())
+        score = sum(compute_kq_list_score_jpegx16(kq_list) for kq_list in map_d_to_kq_list.values())
+        
+        # # score-based
+        # if score > score_best:
+        #     score_best = score
+        #     M_div16_best_list = [(float(M_div16), score)]
+        # elif score == score_best:
+        #     M_div16_best_list.append((float(M_div16), score))
+
+        # vote-based
+        if vote > vote_best:
+            vote_best = vote
+            # M_div16_best_list = [(float(M_div16), score)]
+            M_div16_best_list = [(float(M_div16), score)]
+        elif vote == vote_best:
+            # M_div16_best_list.append((float(M_div16), score))
+            M_div16_best_list.append((float(M_div16), score))
+
+
+    # print("score_best", score_best)
+
+    # # sort M_div16_best_list:
+    # M_div16_best_list = [(M_div16, compute_kq_list_score(k_list)) for M_div16, k_list in M_div16_best_list]
+
+    M_div16_best_list.sort(key=lambda x:x[1], reverse=True)
+
+    # for M_div16, score in M_div16_best_list:
+    #     print(f"M / 16 = {M_div16:.1f}, score = {score:.1f}")  # debug x16
+    #     show_matched_points(M_div16, d_list_final, N)
+    # show_matched_points(62.5, d_list_final, N) # debug
+
+
+    score_best = M_div16_best_list[0][1]
+    M_div16_best_list = [pair for pair in M_div16_best_list if pair[1] == score_best]
+    M_list_final = [ int(pair[0] * 16) for pair in  M_div16_best_list]  # debug x16
 
     M_list_final = group_close_value(M_list_final)
 
@@ -317,6 +443,37 @@ def compute_kq_list_score(kq_list:list):
     qmin = min(q % 8, (-q) % 8)
     score = score_map[kmin] * 10 + score_map[qmin]
     return score 
+
+
+
+def compute_kq_list_score_jpegx16(kq_list:list):
+    # kq_list_abs = [(abs(k), abs(q)) for k,q in kq_list]
+    if len(kq_list) == 0: return 0
+
+    k_score_map = {
+        0: 1000,
+        1: 100,
+        2: 1000,
+        3: 10,
+        4: 100,
+        5: 1,
+        6: 10,
+        7: 1,
+        8: 1
+    }
+
+    q_score_map = {
+        0: 1,
+        1: 0.5,
+        2: 0.5
+    }
+
+    k, q = kq_list[0]
+    kmin = min(k % 16, (-k) % 16)
+    qmin = min(q % 8, (-q) % 8)
+    score = k_score_map[kmin] * q_score_map[qmin]
+    return score 
+
 
 def group_close_value(l:list, eps=2) -> list:
     if len(l) == 0: return []
@@ -344,6 +501,7 @@ def estimate_original_size_non_jpeg(d_list:list, N:int, rate_range:list, eps:int
 
     # step 2: count the vote for each M
     d_list_final = np.array(d_list_final)
+
     M_candidates_ = []
     # d = kM + qN
     for k in [-2, -1, 1, 2]:
@@ -392,6 +550,7 @@ def estimate_original_size_non_jpeg(d_list:list, N:int, rate_range:list, eps:int
         score = sum(map_k_to_score[abs(k)] for k in map_d_to_k.values())
 
         # print("M={}, vote={}, score={}, map_d_to_k={}".format(M, vote, score, map_d_to_k))
+
         # vote-based
         if vote > vote_best:
             vote_best = vote
@@ -430,21 +589,39 @@ def compute_k_list_score(k_list:list):
 
 
 def show_matched_points(M_div8, d_list, N, eps=2):
+    map_d_to_str = {d: f"? = {d}" for d in d_list}
+
     print("d_list:", d_list)
-    for k in range(-8, 9):
-        for q in range(-1, 2):
-            for qq in range(-7,8):
-                d_test = M_div8 * k - q * N + qq * N/8
-                for dd in d_list:
-                    if abs(dd - d_test) <= eps: 
-                        print(f"{M_div8:.1f} * {k:d} - {q:d} * N + {qq:d} * N/8 = {dd:d}")
-    for k in [-2,2]:
-        d_test = int(k * M_div8 * 8) % N
-        if abs(M_div8 - 197) < 2:
-            print(f"M_div8={M_div8}, d_test={d_test}")
-        for dd in d_list:
-            if abs(dd - d_test) <= eps:
-                print(f"{M_div8:.1f} * {k*8:d} + {qq:d} * N/8  mod N = {dd:d}")
+    # for k_test in list(range(-8, 9)) + [-16, 16]:
+    for k_test in list(range(-16, 17)) + [-32, 32]: # debug x16
+        # for q_test in range(-1, 2):
+        for q_test in range(-2,3):
+            # d_test = M_div8 * k_test - q_test * N + qq_test * N/8
+            d_test = int(M_div8 * k_test + q_test * N/8) % N
+            for d in d_list:
+                if abs(d - d_test) <= eps:
+                    printed_str = f"({M_div8:.1f} * {k_test:d} - {q_test:d} * N/8) mod N= {d:d}"
+                    map_d_to_str[d] = printed_str
+                    break
+    
+    for d in sorted(d_list):
+        print(map_d_to_str[d])
+
+    # for k in range(-8, 9):
+    #     for q in range(-1, 2):
+    #         for qq in range(-7,8):
+    #             d_test = M_div8 * k - q * N + qq * N/8
+    #             for dd in d_list:
+    #                 if abs(dd - d_test) <= eps: 
+    #                     print(f"{M_div8:.1f} * {k:d} - {q:d} * N + {qq:d} * N/8 = {dd:d}")
+    # for k in [-2,2]:
+    #     d_test = int(k * M_div8 * 8) % N
+    #     if abs(M_div8 - 197) < 2:
+    #         print(f"M_div8={M_div8}, d_test={d_test}")
+    #     for dd in d_list:
+    #         if abs(dd - d_test) <= eps:
+    #             print(f"{M_div8:.1f} * {k*8:d} + {qq:d} * N/8  mod N = {dd:d}")
+
 
 def test_estimate_original_size_jpeg():
     d_list = [1, 2,  17, 15, 3,4]

@@ -13,7 +13,7 @@ import sys
 sys.path.append("/workdir/bin/src")
 sys.path.append("../src")
 from ird import detect_resampling
-from misc import rgb2luminance, resize, estimate_original_size_jpeg, estimate_original_size_non_jpeg
+from misc import rgb2luminance, resize, estimate_original_size_jpeg, estimate_original_size_non_jpeg, estimate_original_size_by_jpegx16
 from classifier import predict_rate_range, Config
 
 
@@ -97,7 +97,7 @@ def center_crop(img:np.ndarray, crop_size:int) -> np.ndarray:
 
 def main(args):
 
-    print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
+    # print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
     # print("N.B.: The resampling rate is assumed to be smaller than 2.")
     print()
     print()
@@ -258,14 +258,235 @@ def main(args):
     if len(d_list) > 2:  # the image was likely to be a JPEG image
         # print("The original image is likely to be a JPEG image")
         for rate_range in ranges_jpeg:
+            print("rate_range", rate_range)
             M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
+    else:
+        # print("The original image is unlikely to be a JPEG image")
+        for rate_range in ranges_non_jpeg:
+            print("rate_range", rate_range)
+            M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
+
+
+    print_results(N, M_list)
+
+    # lowest_nfa =
+    # print_results(N, M_list, lowest_nfa)
+
+
+
+def erode(x:np.ndarray, rg:int):
+    x_ero = x.copy()
+    for r in range(1, rg+1):
+        x_ero[:-r] = np.minimum(x_ero[:-r], x[r:])
+        x_ero[r:] = np.minimum(x_ero[r:], x[:-r])
+    return x_ero
+
+
+def cross_validate(nfa_0:np.ndarray, nfa_1:np.ndarray, rg:int):
+    """ Make agreement between two NFAs, a significant detection from one array must be validated by another significant detection from the other array that is close to the first detection.
+
+    Parameters
+    ----------
+    nfa_0 : np.ndarray
+        the first NFA array
+    nfa_1 : np.ndarray
+        the second NFA array
+    rg : int
+        the range of the cross validation, such that out(x) = min_r( max( nfa_0(x), nfa_1(x+r) ) )
+    """
+    assert len(nfa_0.shape) == 1 and len(nfa_1.shape) == 1 and nfa_0.shape == nfa_1.shape
+
+    # erode nfa_1
+    nfa_1_ero = erode(nfa_1, rg)
+
+    return np.maximum(nfa_0, nfa_1_ero)
+
+
+def main_bidirection(args):
+
+    print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
+    # print("N.B.: The resampling rate is assumed to be smaller than 2.")
+    print()
+    print()
+
+    img = skimage.io.imread(args.input).astype(float)
+    if np.ndim(img) == 3:
+        img = img[:,:,:3]  # if RGBA, take only RGB
+
+    if args.apply_resize == "true":
+        antialias = (args.antialias == "true")
+
+        if args.crop > 0:
+            # pre-crop the image to reduce the processing time
+            img = center_crop(img, int(args.crop/args.r) + 5)
+            
+        img = resize(img, z=args.r, interp=args.interp, antialias=antialias)
+
+
+    # pre-crop the image to ensure the image is squared
+    crop_size = min(img.shape[0], img.shape[1])
+    img = img[:crop_size, :crop_size]
+    if args.crop > 0:
+        # img = img[:args.crop, :args.crop]
+        img = center_crop(img, args.crop)
+
+
+    # iio.write("img_orig.png", img)
+
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    
+    if args.apply_recompress == "true":
+        skimage.io.imsave("img_orig.jpg", img, quality=args.jpegq)
+        img_orig_for_ipol = skimage.io.imread("img_orig.jpg")
+        skimage.io.imsave("img_orig.png", img_orig_for_ipol)
+    else:
+        skimage.io.imsave("img_orig.png", img)
+
+    if args.apply_recompress == "true":
+        suppress_jpeg = True
+    elif (args.input.lower().endswith(".jpg") or args.input.lower().endswith(".jpeg")) and args.apply_resize == "false":
+        suppress_jpeg = True
+    elif args.suppress_jpeg == "true":
+        suppress_jpeg = True
+    else:
+        suppress_jpeg = False
+
+
+    # if args.apply_recompress == "true":
+    #     img = jpeg2luminance("img_orig.jpg")
+    # else:
+    #     img = rgb2luminance(img)
+
+    img = img[:,:,1]  # take Green channel
+
+
+    # direction = "horizontal"
+    # if args.direction == "h":
+    #     N = img.shape[1]
+    #     direction = "horizontal"
+    #     # max_period = img.shape[1]
+    # if args.direction == "v":
+    #     N = img.shape[0]
+    #     direction = "vertical"
+    #     # max_period = img.shape[0]
+
+    H, W = img.shape[0], img.shape[1]
+    N = W  # take the width as the principal axis
+
+    preproc_param = None
+    if args.preproc == "rt":
+        preproc = "rt"
+        preproc_param = {"rt_size": 3}
+    if args.preproc == "tv":
+        preproc = "tv"
+    if args.preproc == "dct":
+        preproc = "dct"
+        preproc_param = {"sigma": 3}
+    if args.preproc == "phot":
+        preproc = "phot"
+    if args.preproc == "none":
+        preproc = "none"
+
+    window_ratio = 0.1
+    nb_neighbor = 20
+
+    import time
+    start = time.time()
+    nfa_hori, img_preproc = detect_resampling(
+            img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
+            nb_neighbor=nb_neighbor, direction="horizontal", suppress_jpeg=suppress_jpeg, max_period=W, return_preproc=True)
+
+    nfa_verti, img_preproc = detect_resampling(
+            img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
+            nb_neighbor=nb_neighbor, direction="vertical", suppress_jpeg=suppress_jpeg, max_period=H, return_preproc=True)
+
+    val_range = 3
+    nfa = cross_validate(nfa_hori, nfa_verti, val_range)
+
+    # save preprocessed image
+    image.imsave("img_preproc.png", img_preproc, cmap='gray')
+
+    # save spec
+    spec = np.fft.fft2(img_preproc, norm="ortho", axes=(0,1))
+    image.imsave("spec_preproc.png", np.log(np.abs(spec) + 1))
+
+    lognfa = np.log10(nfa + 1e-90)
+    log_threshold = LOG_THRESHOLDS[args.preproc]
+
+    if suppress_jpeg:
+        lognfa = filter_by_nms(lognfa, log_threshold, np.round(np.arange(1,8)*N/8).astype(int), max_period=N)
+
+    orig_sz_arr = np.arange(0, len(lognfa))
+
+    pairs_d_nfa = []
+
+    fig = plt.figure()
+    plt.plot(orig_sz_arr, lognfa, "-", label="nfa")
+    for i in range(len(orig_sz_arr)):
+        d = orig_sz_arr[i]
+        if lognfa[i] < log_threshold:
+            pairs_d_nfa.append((i, float(nfa[i])))
+            if lognfa[i+1] < -3:
+                plt.text(d - 18, lognfa[i], f"{d}", c='r')
+            else:
+                plt.text(d + 3, lognfa[i], f"{d}", c='r')
+            plt.scatter(d, lognfa[i], s=10, color="r")
+    # fig.suptitle(fname + "\n" + f"preprocess: {PREPROCESS}", fontsize=10)
+    plt.ylabel(r'$log_{10} \, NFA(d)$', fontsize=12)
+    plt.xlabel("d", fontsize=12)
+
+    # plt.show()
+    plt.savefig("ipol_result.png")
+
+    # if len(pairs_d_nfa) == 0:
+    #     print("No resampling traces detected.")
+    # else:
+    #     print("Detected resampling traces as the abnormal spectral correlation at certain distances.")
+        # print("Detected resampling traces as the abnormal spectral correlation at certain distances:")
+        # for d, nfa in pairs_d_nfa:
+        #     print(f"NFA at distance {d}: {nfa:.2E}")
+
+
+    # auxiliary module to invert the original M
+    pairs_d_nfa = [ (d,nfa) if d <= N/2 else (N-d,nfa) for d,nfa in  pairs_d_nfa]
+
+    # merge close values
+    pairs_d_nfa.sort(key=lambda x:x[0])
+    pairs_d_nfa = merge_pairs_d_nfa(pairs_d_nfa, epsilon=2)
+
+
+    # TODO: make the workflow
+    ranges_sorted, logits_sorted = predict_rate_range(img, config=Config())  # already sorted by logits
+    # print("logits:", logits)
+    # print("ranges:", ranges)
+    if logits_sorted[0] > 0 and logits_sorted[1] < 0: # only one possible range
+        ranges_jpeg = [ranges_sorted[0]]
+    else:
+        ranges_jpeg = [ranges_sorted[0], ranges_sorted[1]]
+
+    ranges_non_jpeg = [ranges_sorted[0], ranges_sorted[1], ranges_sorted[2]]
+
+    d_list = [d for d,_ in pairs_d_nfa]
+
+    print("The method is run successfully in {:.2f} s.".format(time.time() - start))
+    print()
+
+    M_list = []
+    if len(d_list) > 2:  # the image was likely to be a JPEG image
+        # print("The original image is likely to be a JPEG image")
+        for rate_range in ranges_jpeg:
+            # M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
+            M_list.extend(estimate_original_size_by_jpegx16(d_list, N, rate_range, eps=2))
     else:
         # print("The original image is unlikely to be a JPEG image")
         for rate_range in ranges_non_jpeg:
             M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
 
+
     print_results(N, M_list)
 
+    # lowest_nfa =
+    # print_results(N, M_list, lowest_nfa)
 
 def merge_pairs_d_nfa(pairs:list, epsilon=2):
     if not pairs:
@@ -349,7 +570,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Pass arguments to the main function
-    main(args)
+    # main(args)
+    main_bidirection(args)  # debug
 
     ## RUN COMMAND
     # python main_ipol.py input_0.png -p $p --apply_resize $apply_resize --r $r --interp $interp 
