@@ -412,9 +412,9 @@ def estimate_original_size_by_jpegx16(d_list:list, N:int, rate_range:list, eps:i
 
     M_div16_best_list.sort(key=lambda x:x[1], reverse=True)
 
-    for M_div16, score in M_div16_best_list:
-        print(f"M / 16 = {M_div16:.1f}, score = {score:.1f}")  # debug x16
-        show_matched_points(M_div16, d_list_final, N)
+    # for M_div16, score in M_div16_best_list:
+    #     print(f"M / 16 = {M_div16:.1f}, score = {score:.1f}")  # debug x16
+    #     show_matched_points(M_div16, d_list_final, N)
     # show_matched_points(62.5, d_list_final, N) # debug
 
 
