@@ -375,6 +375,7 @@ def estimate_original_size_by_jpegx16(d_list:list, N:int, rate_range:list, eps:i
                 for dd in map_d_to_kq_list.keys():
                     if abs(dd - d_test) <= eps:
                         map_d_to_kq_list[dd].append((k_test, q_test))
+
         # for k_test in [-16,16]:
         #     d_test = int(k_test * M_div16) % N
         #     # if abs(M_div16 - 197) < 2:
@@ -411,9 +412,9 @@ def estimate_original_size_by_jpegx16(d_list:list, N:int, rate_range:list, eps:i
 
     M_div16_best_list.sort(key=lambda x:x[1], reverse=True)
 
-    # for M_div16, score in M_div16_best_list:
-    #     print(f"M / 16 = {M_div16:.1f}, score = {score:.1f}")  # debug x16
-    #     show_matched_points(M_div16, d_list_final, N)
+    for M_div16, score in M_div16_best_list:
+        print(f"M / 16 = {M_div16:.1f}, score = {score:.1f}")  # debug x16
+        show_matched_points(M_div16, d_list_final, N)
     # show_matched_points(62.5, d_list_final, N) # debug
 
 
@@ -468,10 +469,13 @@ def compute_kq_list_score_jpegx16(kq_list:list):
         2: 0.5
     }
 
-    k, q = kq_list[0]
-    kmin = min(k % 16, (-k) % 16)
-    qmin = min(q % 8, (-q) % 8)
-    score = k_score_map[kmin] * q_score_map[qmin]
+    best_score = -1
+    for k, q in kq_list:
+    # k, q = kq_list[0]
+        kmin = min(k % 16, (-k) % 16)
+        qmin = min(q % 8, (-q) % 8)
+        score = k_score_map[kmin] * q_score_map[qmin]
+        best_score = best_score if best_score > score else score
     return score 
 
 

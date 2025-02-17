@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	        fiAddNoise(&d_v[i*d_wh], &noisy[i*d_wh], sigma, i, d_wh);
 	} else 
 	{
-		printf("Denoise the input image.\n");
+		// printf("Denoise the input image.\n");
 		noisy = d_v;	
     }
 
