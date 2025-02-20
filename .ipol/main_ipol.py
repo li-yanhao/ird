@@ -436,7 +436,7 @@ def main_bidirection(args):
     if min_lognfa - log_threshold >= 0:
         prob_cat = 0
         prob_text = "unlikely"
-    if min_lognfa - log_threshold >= -2:
+    elif min_lognfa - log_threshold >= -2:
         prob_cat = 1
         prob_text = "possible"
     elif min_lognfa - log_threshold < -2:
@@ -459,12 +459,11 @@ def main_bidirection(args):
         d = orig_sz_arr[i]
         if lognfa[i] < log_threshold:
             pairs_d_nfa.append((i, float(nfa[i])))
-            if lognfa[i+1] < -3:
+            if lognfa[i+1] < log_threshold:
                 plt.text(d - 18, lognfa[i], f"{d}", c='r')
             else:
                 plt.text(d + 3, lognfa[i], f"{d}", c='r')
             plt.scatter(d, lognfa[i], s=10, color="r")
-    # fig.suptitle(fname + "\n" + f"preprocess: {PREPROCESS}", fontsize=10)
     plt.ylabel(r'$log_{10} \, NFA(d)$', fontsize=12)
     plt.xlabel("d", fontsize=12)
 
