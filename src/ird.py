@@ -258,3 +258,102 @@ def detect_resampling(img_in:np.ndarray, preproc:str, preproc_param, window_rati
         return nfa_binom, img_preproc
     else:
         return nfa_binom
+
+
+
+def detect_resampling_b_channel(img_in:np.ndarray, preproc:str, preproc_param, window_ratio:float,
+                      nb_neighbor:int, direction:str, suppress_jpeg:bool, max_period:int=-1, return_preproc:bool=False):
+    """_summary_
+
+    Parameters
+    ----------
+    img_in : np.ndarray
+        _description_
+    preproc : str
+        _description_
+    preproc_param : _type_
+        _description_
+    window_ratio : float
+        _description_
+    nb_neighbor : int
+        _description_
+    direction : str
+        _description_
+    suppress_jpeg : bool
+        _description_
+    max_period : int, optional
+        _description_, by default -1
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+
+    assert direction in ["vertical", "horizontal"]
+
+    assert len(img_in.shape) == 2
+
+    # step 1: preprocessing
+    img_preproc = preprocess(img_in, proc_type=preproc, proc_param=preproc_param)
+
+    # step 2: compute the correlations of patch pairs
+
+    h, w = img_preproc.shape
+
+    if direction == "horizontal":
+        nb_periods = w
+    else:
+        nb_periods = h
+
+    if max_period == -1: # if not defined
+        max_period = nb_periods // 2 + nb_neighbor + 1
+
+    corr_periods = []
+    if direction == "horizontal":
+        img = np.array(img_preproc.T)
+    else:
+        img = img_preproc
+
+    corr_periods = compute_corr_periods(img, window_ratio, max_period) # period in [0, max_period]
+
+    # step 3: find out the abnormal correlations at certain periods
+    nb_windows = corr_periods.shape[1]
+
+    mask_valid_period = np.ones(max_period+1, dtype=bool)
+    mask_valid_period[0] = False
+    if suppress_jpeg:
+        for i in range(1, 16):
+            period = int(np.round(i / 16 * nb_periods))
+
+            # assume the size is multiple of 8
+            if period < max_period:
+                for j in range(-3, 4):
+                    mask_valid_period[period+j] = False
+                    
+    corr_periods_valid = corr_periods[mask_valid_period, :]
+
+    peak_mask = _bool_lateral_maxima(corr_periods_valid, axis=0, order=nb_neighbor, exclude_range=1, lateral='both')
+    peak_counts_valid = np.sum(peak_mask, axis=1)
+
+    # set the values at the two extremities to 0
+    peak_counts_valid[:(nb_neighbor+1)] = 0
+    peak_counts_valid[-(nb_neighbor+1):] = 0
+
+    peak_counts = np.zeros(max_period + 1)
+    peak_counts[mask_valid_period] = peak_counts_valid
+
+    nfa_binom = np.zeros(max_period + 1) + nb_periods  # include period=0
+
+    for period, count in enumerate(peak_counts):
+        p_value = scipy.stats.binom.sf(count, nb_windows, 1/(nb_neighbor*2+1))
+        nfa = p_value * nb_periods
+        nfa_binom[period] = nfa
+    # 0,1,2,3,4,5...,100,101,102,103   nb_neighbor=2 period=100, max=103
+    nfa_binom[:nb_neighbor+2] = nb_periods
+    nfa_binom[-(nb_neighbor+1):] = nb_periods
+
+    if return_preproc:
+        return nfa_binom, img_preproc
+    else:
+        return nfa_binom

@@ -460,7 +460,7 @@ def compute_kq_list_score_jpegx16(kq_list:list):
         5: 1,
         6: 10,
         7: 1,
-        8: 1
+        8: 10
     }
 
     q_score_map = {

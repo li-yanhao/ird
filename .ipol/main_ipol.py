@@ -1,10 +1,8 @@
 import numpy as np
-import cv2
 import matplotlib.pyplot as plt
 from matplotlib import image
 
 import jpeglib
-import iio
 import skimage
 import argparse
 from scipy import fft
@@ -302,13 +300,21 @@ def cross_validate(nfa_0:np.ndarray, nfa_1:np.ndarray, rg:int):
     return np.maximum(nfa_0, nfa_1_ero)
 
 
+def write_tuples_to_txt(tuples_list, labels_list, filename):
+    """Writes a list of tuples with corresponding labels to a text file.
+    """
+    try:
+        with open(filename, 'w') as f:
+            f.write(", ".join(labels_list))
+            f.write("\n")
+            for tup in tuples_list:
+                f.write(", ".join(map(str, tup)))
+                f.write("\n")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 def main_bidirection(args):
-
-    # print("This method detects whether the image has been resampled, and estimates the possible resampling rates.")
-    # print("N.B.: The resampling rate is assumed to be smaller than 2.")
-    # print()
-    # print()
-
     img = skimage.io.imread(args.input).astype(float)
     if np.ndim(img) == 3:
         img = img[:,:,:3]  # if RGBA, take only RGB
@@ -358,6 +364,7 @@ def main_bidirection(args):
     #     img = rgb2luminance(img)
 
     img = img[:,:,1]  # take Green channel
+    # img = img[:,:,2]  # debug: take Red channel
 
 
     # direction = "horizontal"
@@ -397,11 +404,14 @@ def main_bidirection(args):
             nb_neighbor=nb_neighbor, direction="horizontal", suppress_jpeg=suppress_jpeg, max_period=W, return_preproc=True)
 
     nfa_verti, img_preproc = detect_resampling(
-            img, preproc=preproc, preproc_param=preproc_param, window_ratio=window_ratio, 
+            img_preproc, preproc="none", preproc_param=preproc_param, window_ratio=window_ratio, 
             nb_neighbor=nb_neighbor, direction="vertical", suppress_jpeg=suppress_jpeg, max_period=H, return_preproc=True)
 
     val_range = 3
     nfa = cross_validate(nfa_hori, nfa_verti, val_range)
+
+    # debug
+    # nfa = nfa_hori
 
     # save preprocessed image
     image.imsave("img_preproc.png", img_preproc, cmap='gray')
@@ -415,6 +425,23 @@ def main_bidirection(args):
 
     if suppress_jpeg:
         lognfa = filter_by_nms(lognfa, log_threshold, np.round(np.arange(1,8)*N/8).astype(int), max_period=N)
+
+    min_lognfa = np.min(lognfa)
+    if min_lognfa - log_threshold >= 0:
+        prob_cat = 0
+        prob_text = "unlikely"
+    if min_lognfa - log_threshold >= -2:
+        prob_cat = 1
+        prob_text = "possible"
+    elif min_lognfa - log_threshold < -2:
+        prob_cat = 2
+        prob_text = "very likely"
+
+    
+    with open("llk_resampled.txt", 'w') as f:
+        f.write(f"{prob_cat:d}\n")
+        f.write("\n")
+        f.write("(The number indicates the likelihood that the image has been resampled: 0 for unlikely, 1 for possible, 2 for very likely)\n")
 
     orig_sz_arr = np.arange(0, len(lognfa))
 
@@ -468,25 +495,29 @@ def main_bidirection(args):
 
     d_list = [d for d,_ in pairs_d_nfa]
 
-    print("The method is run successfully in {:.2f} s.".format(time.time() - start))
-    print()
-
     M_list = []
+
     if len(d_list) > 2:  # the image was likely to be a JPEG image
         # print("The original image is likely to be a JPEG image")
         for rate_range in ranges_jpeg:
             # M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
             M_list.extend(estimate_original_size_by_jpegx16(d_list, N, rate_range, eps=2))
     else:
-        # print("The original image is unlikely to be a JPEG image")
+        print("The original image is unlikely to be a JPEG image")
         for rate_range in ranges_non_jpeg:
             M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
+        
+    if len(d_list) > 0 and  all(abs(d - N/2) <= 2 for d in d_list):
+        only_demosaic = True
+    else:
+        only_demosaic = False
 
+    print("The method is run successfully in {:.2f} s.".format(time.time() - start))
+    print()
+    print("It is {} that tested image has been resampled.".format(prob_text))
+    print()
+    print_results(N, M_list, only_demosaic)
 
-    print_results(N, M_list)
-
-    # lowest_nfa =
-    # print_results(N, M_list, lowest_nfa)
 
 def merge_pairs_d_nfa(pairs:list, epsilon=2):
     if not pairs:
@@ -531,21 +562,26 @@ def merge_close_values(values:list, epsilon=1e-3):
     return merged_values
 
 
-def print_results(N:int, M_candidates:list):
+def print_results(N:int, M_candidates:list, only_demosaic=False):
+    list_N_M_r = []
     if len(M_candidates) == 0:
-        print("No resampling trace is detected.")
-        print()
         print("WANING: the following cases are possible:")
         print("- The image is an original image without being resampled;") 
         print("- The image has been severly downsampled so that the resampling traces are undetectable;")
         print("- The image has been resampled but severely post-compressed so that the resampling traces are undetectable.")
     else:
-        print("Image resampling traces are detected.")
-        print()
-        print(f"The tested image having N={N} pixels in width has been resampled from an original image having M pixels in width, with M being one of the following values:")
-        for M in M_candidates:
-            r = N / M
-            print(f"  M={M:d}, resampling rate r=N/M={r:.2f}")
+        # print("Image resampling traces are detected.")
+        # print()
+        if only_demosaic:
+            print("If this is an uncompressed image, the detected resampling traces seem to be left by demosaicing. No other resampling traces are detected.")
+            print()
+        else:
+            print(f"The tested image in N x N = {N} x {N} has been resampled from an original image in M x M, with M being one of the following values:")
+            for M in M_candidates:
+                r = N / M
+                print(f"  M={M:d}, resampling rate r=N/M={r:.2f}")
+                list_N_M_r.append((N, M, r))
+    write_tuples_to_txt(list_N_M_r, ["current_size", "estimated_original_size", "estimated_resample_rate"], "estimated_rates.txt")
 
 
 if __name__ == "__main__":
