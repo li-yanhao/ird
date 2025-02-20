@@ -574,6 +574,30 @@ def estimate_original_size_non_jpeg(d_list:list, N:int, rate_range:list, eps:int
     return M_list_final
 
 
+def contains(x, l, eps):
+    for e in l:
+        if abs(x - e) <= eps:
+            return True
+    return False
+
+def verify_upsample_by_2_pow_n(d_list:list, N, n, eps=2):
+    assert n >= 3
+    
+    rate = round(2 ** n)
+    rate_div8 = round(2 ** (n-3))
+    count = 0
+    for i in range(1, rate // 2 + 1):
+        d_test = round(i / rate * N)
+        if i % rate_div8 == 0:  # ignore n/8
+            count += 1
+        elif contains(d_test, d_list, eps):
+            count += 1
+    if count == rate // 2:
+        return True
+    else:
+        return False
+        
+
 def compute_k_list_score(k_list:list):
     if len(k_list) == 0: return 0
 

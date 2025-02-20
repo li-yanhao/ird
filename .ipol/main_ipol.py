@@ -11,7 +11,13 @@ import sys
 sys.path.append("/workdir/bin/src")
 sys.path.append("../src")
 from ird import detect_resampling
-from misc import rgb2luminance, resize, estimate_original_size_jpeg, estimate_original_size_non_jpeg, estimate_original_size_by_jpegx16
+from misc import (
+    rgb2luminance, resize, 
+    estimate_original_size_jpeg, 
+    estimate_original_size_non_jpeg, 
+    estimate_original_size_by_jpegx16,
+    verify_upsample_by_2_pow_n
+    )
 from classifier import predict_rate_range, Config
 
 
@@ -502,6 +508,10 @@ def main_bidirection(args):
         for rate_range in ranges_jpeg:
             # M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
             M_list.extend(estimate_original_size_by_jpegx16(d_list, N, rate_range, eps=2))
+        if verify_upsample_by_2_pow_n(d_list, N, n=5):
+            M_list.append(N / 32)
+        elif verify_upsample_by_2_pow_n(d_list, N, n=4):
+            M_list.append(N / 16)
     else:
         # print("The original image is unlikely to be a JPEG image")
         for rate_range in ranges_non_jpeg:
@@ -579,7 +589,10 @@ def print_results(N:int, M_candidates:list, only_demosaic=False):
             print(f"The tested image in N x N = {N} x {N} has been resampled from an original image in M x M, with M being one of the following values:")
             for M in M_candidates:
                 r = N / M
-                print(f"  M={M:d}, resampling rate r=N/M={r:.2f}")
+                if type(M) is int:
+                    print(f"  M={M:d}, resampling rate r=N/M={r:.2f}")
+                elif type(M) is float:
+                    print(f"  M={M:.1f}, resampling rate r=N/M={r:.2f}")
                 list_N_M_r.append((N, M, r))
     write_tuples_to_txt(list_N_M_r, ["current_size", "estimated_original_size", "estimated_resample_rate"], "estimated_rates.txt")
 
