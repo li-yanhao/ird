@@ -503,7 +503,7 @@ def main_bidirection(args):
             # M_list.extend(estimate_original_size_jpeg(d_list, N, rate_range, eps=2))
             M_list.extend(estimate_original_size_by_jpegx16(d_list, N, rate_range, eps=2))
     else:
-        print("The original image is unlikely to be a JPEG image")
+        # print("The original image is unlikely to be a JPEG image")
         for rate_range in ranges_non_jpeg:
             M_list.extend(estimate_original_size_non_jpeg(d_list[:2], N, rate_range, eps=2))
         
