@@ -465,7 +465,7 @@ def main_bidirection(args):
                 plt.text(d + 3, lognfa[i], f"{d}", c='r')
             plt.scatter(d, lognfa[i], s=10, color="r")
     plt.ylabel(r'$log_{10} \, NFA(d)$', fontsize=12)
-    plt.xlabel("d", fontsize=12)
+    plt.xlabel("tested spectral correlation distance " + r'$d$', fontsize=12)
 
     # plt.show()
     plt.savefig("ipol_result.png")
