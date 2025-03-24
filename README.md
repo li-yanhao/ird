@@ -20,6 +20,6 @@ make
 
 ## Test on a single image
 ``` bash
-python test_one_image.py <img_fname>
+python test/test_one_image.py <img_fname>
 ```
 
