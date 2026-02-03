@@ -27,7 +27,7 @@ The proposed method is suitable for identifying images resampled with different 
 
 ## Prerequisite
 
-Tested python version: 3.10.19 (conda) and 3.10.13 (uv)
+Tested python versions: 3.10.19 (`conda`) and 3.10.13 (`uv`)
 
 Use `conda` to create a virtual environment:
 ``` bash
