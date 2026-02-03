@@ -10,7 +10,11 @@ Image resampling replicates and folds original frequencies in the Fourier domain
 
 A non-parametric statistical _a contrario_ framework is thus proposed to detect such correlations with control of number of false alarms (NFA). Below is the detection result on the above resampled image, where the NFA values at distances 144 and 512 are significantly low. This indicates a strong evidence of resampling.
 
-![](asset/nfa_baboon_666.png)
+
+<details>
+  <summary>📊 Click to view detection result</summary>
+  <img src="asset/nfa_baboon_666.png" width="600">
+</details>
 
 The proposed method is suitable for identifying images resampled with different anti-aliasing filters, scaling factors, classical linear interpolators, and AI-based nonlinear interpolators, and with post-compression at different levels.
 
