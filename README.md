@@ -27,20 +27,20 @@ The proposed method is suitable for identifying images resampled with different 
 
 ## Prerequisite
 
-Tested python version: 3.13.5
+Tested python version: 3.10.19 (conda) and 3.10.13 (uv)
 
-Using `uv` to create a virtual environment:
+Use `conda` to create a virtual environment:
 ``` bash
-uv venv .venv --python python3.13.5
-uv pip install -r requirements.txt
-source .venv/bin/activate
-```
-
-Or using `conda` to create a virtual environment:
-``` bash
-conda create -n ird python=3.13.5
+conda create -n ird python=3.10.19
 conda activate ird
 pip install -r requirements.txt
+```
+
+Or use `uv` to create a virtual environment:
+``` bash
+uv venv .venv --python python3.10.13
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 Compile the TV denoiser in `src/filters/CDS_ChambolleTV`:
