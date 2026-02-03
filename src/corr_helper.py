@@ -1,23 +1,22 @@
 import numpy as np
 import torch
-import scipy
-from skimage.util import view_as_windows
 
 
 EPS = 1e-17
 
+
 def integral_image(u:np.ndarray) -> np.ndarray:
-    """_summary_
+    """ Integral image computation
 
     Parameters
     ----------
     u : np.ndarray
-        original image
+        original image, of shape (H, W)
 
     Returns
     -------
     np.ndarray
-        integral image
+        integral image, of shape (H+1, W+1)
     """
 
     assert len(u.shape) == 2
@@ -35,161 +34,190 @@ def integral_image(u:np.ndarray) -> np.ndarray:
     return v
 
 
-
-class CorrHelper(object):
-    def __init__(self, h:int, w:int, uf_expand:np.ndarray, uf_expand_int:np.ndarray, 
-                 uf2_expand_int:np.ndarray, window_ratio:float, max_period:int) -> None:
-        """ 
+class CorrHelper(object):  # using torch for acceleration, faster on CPU than on GPU
+    def __init__(self, height:int, width:int, fourier_expanded:np.ndarray, integral_fourier:np.ndarray, 
+                 integral_fourier_squared:np.ndarray, window_ratio:float, max_distance:int) -> None:
+        """ Helper class to compute correlations between patches at different distances.
+            FFT-based acceleration is used to compute correlations between patches.
 
         Parameters
         ----------
-        h : int
+        height : int
             The height of the image
-        w : int
+        width : int
             The width of the image
-        uf_expand : np.ndarray
-            The fourier transform of the image replicated twice in height and in width
-        uf_expand_int : np.ndarray
-            The integral image of the fourier transform of the image replicated twice in height and in width
-        uf2_expand_int : np.ndarray
-            The integral image of the conjuguate square fourier transform of the image replicated twice in height and in width
+        fourier_expanded : np.ndarray
+            The Fourier transform of the image replicated twice in height and in width
+        integral_fourier : np.ndarray
+            The integral image of the Fourier transform of the image replicated twice in height and in width
+        integral_fourier_squared : np.ndarray
+            The integral image of the conjugate square Fourier transform of the image replicated twice in height and in width
         window_ratio : float
             The ratio of patch window for a contrario detection
-        max_period : int
-            The maximum period (included) for detecting abnormal correlation
+        max_distance : int
+            The maximum distance (included) for detecting abnormal correlation
         """
 
-        self.h = h
-        self.w = w
+        self.height = height
+        self.width = width
 
-        # self.dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.dev = torch.device("cpu")
+        self.integral_fourier = torch.from_numpy(integral_fourier)
+        self.integral_fourier_squared = torch.from_numpy(integral_fourier_squared)
 
-        self.uf_expand_int = torch.from_numpy(uf_expand_int).to(self.dev)
-        self.uf2_expand_int = torch.from_numpy(uf2_expand_int).to(self.dev)
+        self.patch_height = round(window_ratio * height)
+        self.patch_width = round(window_ratio * width)
 
-        self.lr = round(window_ratio * h)
-        self.lc = round(window_ratio * w)
+        patch_offsets = []
 
-        offsets = []
+        for row_start in np.arange(0, height - self.patch_height + 1, self.patch_height):
+            for col_start in np.arange(0, width - self.patch_width + 1, self.patch_width):
+                row_start = row_start % height
+                col_start = col_start % width
+                patch_offsets.append((row_start, col_start))
 
-        # default version
-        for r1 in np.arange(0, h-self.lr+1, self.lr):
-            for c1 in np.arange(0, w-self.lc+1, self.lc):
-                r1 = r1 % h
-                c1 = c1 % w
-                offsets.append((r1, c1))
-        
-        offsets = np.array(offsets)
-        self.r1_arr = offsets[:, 0]
-        self.c1_arr = offsets[:, 1]
+        patch_offsets = torch.tensor(patch_offsets, dtype=torch.int64)
+        self.row_starts = patch_offsets[:, 0]
+        self.col_starts = patch_offsets[:, 1]
 
-        # Optimization: compute the sum of each patch from integral image
-        self.sum_1_arr = \
-              self.uf_expand_int[self.r1_arr+self.lr, self.c1_arr+self.lc] \
-            + self.uf_expand_int[self.r1_arr, self.c1_arr] \
-            - self.uf_expand_int[self.r1_arr+self.lr, self.c1_arr] \
-            - self.uf_expand_int[self.r1_arr, self.c1_arr+self.lc]
+        # Compute the sum of each patch using the integral image
+        self.patch_sums = (
+              self.integral_fourier[self.row_starts + self.patch_height, self.col_starts + self.patch_width]
+            + self.integral_fourier[self.row_starts, self.col_starts]
+            - self.integral_fourier[self.row_starts + self.patch_height, self.col_starts]
+            - self.integral_fourier[self.row_starts, self.col_starts + self.patch_width]
+        )
 
-        # Optimization: compute the sum of the square of each patch from integral image
-        self.sum_square_1_arr = \
-              self.uf2_expand_int[self.r1_arr+self.lr, self.c1_arr+self.lc] \
-            + self.uf2_expand_int[self.r1_arr, self.c1_arr] \
-            - self.uf2_expand_int[self.r1_arr+self.lr, self.c1_arr] \
-            - self.uf2_expand_int[self.r1_arr, self.c1_arr+self.lc]
+        # Compute the sum of the square of each patch using the integral image
+        self.patch_square_sums = (
+              self.integral_fourier_squared[self.row_starts + self.patch_height, self.col_starts + self.patch_width]
+            + self.integral_fourier_squared[self.row_starts, self.col_starts]
+            - self.integral_fourier_squared[self.row_starts + self.patch_height, self.col_starts]
+            - self.integral_fourier_squared[self.row_starts, self.col_starts + self.patch_width]
+        )
 
-        self.norm_1_arr = torch.sqrt(self.sum_square_1_arr - self.sum_1_arr * torch.conj(self.sum_1_arr) / (self.lr*self.lc))
+        self.patch_norms = torch.sqrt(
+            self.patch_square_sums - self.patch_sums * torch.conj(self.patch_sums) / (self.patch_height * self.patch_width)
+        )
 
         top = 0
-        # self.num_blob_r = (h-1) // self.lr + 1
-        self.num_blob_r = (h-self.lr) // self.lr + 1
-        # print("h:", h)
-        # print("self.lr:", self.lr)
-
-        # exit(0)
-        bot = self.num_blob_r * self.lr + top
+        self.num_patches_row = (height - self.patch_height) // self.patch_height + 1
+        bottom = self.num_patches_row * self.patch_height + top
 
         left = 0
-        # self.num_blob_c = (w-1) // self.lc + 1
-        self.num_blob_c = (w-self.lc) // self.lc + 1
-        right = self.num_blob_c * self.lc + left
+        self.num_patches_col = (width - self.patch_width) // self.patch_width + 1
+        right = self.num_patches_col * self.patch_width + left
 
-        # self.uf_expand_conj = torch.conj(torch.from_numpy(uf_expand[:(2*h+self.lr*2), left:right])).to(self.dev)  # todo: reduce the size
-        self.uf_expand_conj = torch.conj(torch.from_numpy(uf_expand[:, left:right])).to(self.dev)  # todo: reduce the size
+        self.fourier_expanded = torch.from_numpy(fourier_expanded[:, left:right])
+        self.fourier_cropped = torch.from_numpy(fourier_expanded[top:bottom, left:right])
 
-        self.uf_cropped_1 = torch.from_numpy(uf_expand[top:bot, left:right]).to(self.dev)
-        self.sum_prod_12_arr_periods = {}
-        periods = np.arange(1, max_period + 1)
+        # Precompute correlations using FFT at all distances up to max_distance
+        self.precomputed_correlations = torch.zeros(
+            (max_distance + 1, self.num_patches_row, self.num_patches_col), dtype=torch.complex128
+        )
 
-        for period in periods:
-            top = period % self.h
-            bot = self.num_blob_r * self.lr + top
-            uf_cropped_conj_2 = self.uf_expand_conj[top:bot, : ]
-            # print("period:", period)
-            # print("top:", top)
-            # print("bot:", bot)
-            # print("uf_cropped_1:", self.uf_cropped_1.shape)
-            # print("uf_cropped_conj_2:", uf_cropped_conj_2.shape)
-            prod_12_arr = self.uf_cropped_1 * uf_cropped_conj_2
-            sum_prod_12_arr = prod_12_arr.view(self.num_blob_r, self.lr, self.num_blob_c, self.lc).sum(dim=(1,3)).flatten()
-            self.sum_prod_12_arr_periods[period] = sum_prod_12_arr
+        for col_idx in range(self.num_patches_col):
+            img_col = self.fourier_expanded[0:self.height, col_idx * self.patch_width:(col_idx + 1) * self.patch_width]
+            img_col_fft = torch.fft.fft(img_col, dim=0, n=self.height)
 
+            for row_idx in range(self.num_patches_row):
+                patch = self.fourier_cropped[row_idx * self.patch_height:(row_idx + 1) * self.patch_height, col_idx * self.patch_width:(col_idx + 1) * self.patch_width]
+                patch_fft = torch.fft.fft(patch, dim=0, n=self.height)
 
-    def compute_correlations(self, period):
-        # at period=0, the correlations are always 1
-        if period == 0:
-            return np.ones(len(self.r1_arr))
+                # Translate the Fourier transform of the column image
+                img_col_fft_translated = img_col_fft * torch.exp(
+                    2j * torch.pi * torch.arange(self.height) * row_idx * self.patch_height / (self.height)
+                )[:, None]
 
-        r2_arr = np.mod(self.r1_arr + period, self.h) 
-        c2_arr = np.mod(self.c1_arr, self.w)
+                correlation = torch.fft.ifft(patch_fft.conj() * img_col_fft_translated, dim=0, n=self.height).sum(dim=1).conj()
+                self.precomputed_correlations[:, row_idx, col_idx] = correlation[:max_distance + 1]
+
+        self.precomputed_correlations = self.precomputed_correlations.view(max_distance + 1, self.num_patches_row * self.num_patches_col)
+
+    def compute_correlations(self, distance):
+        """ Compute the correlations for all patches at a given distance
+
+        Parameters
+        ----------
+        distance : int
+            The distance to compute correlations
+
+        Returns
+        -------
+        torch.Tensor
+            The correlations for all patches at the given distance, of shape (num_patches,)
+        """
+
+        # at distance=0, the correlations are always 1
+        if distance == 0:
+            return torch.ones(len(self.row_starts))
+
+        row_starts = torch.remainder(self.row_starts + distance, self.height) 
+        col_starts = torch.remainder(self.col_starts, self.width)
 
         # optimization: integral image technique
-        sum_2_arr = \
-              self.uf_expand_int[r2_arr+self.lr, c2_arr+self.lc] \
-            + self.uf_expand_int[r2_arr, c2_arr] \
-            - self.uf_expand_int[r2_arr+self.lr, c2_arr] \
-            - self.uf_expand_int[r2_arr, c2_arr+self.lc]
-        
+        patch_sums_2 = \
+              self.integral_fourier[row_starts+self.patch_height, col_starts+self.patch_width] \
+            + self.integral_fourier[row_starts, col_starts] \
+            - self.integral_fourier[row_starts+self.patch_height, col_starts] \
+            - self.integral_fourier[row_starts, col_starts+self.patch_width]
+
         # optimization: integral image technique
-        sum_square_2_arr = \
-              self.uf2_expand_int[r2_arr+self.lr, c2_arr+self.lc] \
-            + self.uf2_expand_int[r2_arr, c2_arr] \
-            - self.uf2_expand_int[r2_arr+self.lr, c2_arr] \
-            - self.uf2_expand_int[r2_arr, c2_arr+self.lc]
+        patch_square_sums_2 = \
+              self.integral_fourier_squared[row_starts+self.patch_height, col_starts+self.patch_width] \
+            + self.integral_fourier_squared[row_starts, col_starts] \
+            - self.integral_fourier_squared[row_starts+self.patch_height, col_starts] \
+            - self.integral_fourier_squared[row_starts, col_starts+self.patch_width]
 
-        norm_2_arr = torch.sqrt(sum_square_2_arr - sum_2_arr * torch.conj(sum_2_arr) / (self.lr*self.lc))
+        # norm = sqrt(sum of square - sum * conj(sum) / (patch_height * patch_width))
+        patch_norms_2 = torch.sqrt(patch_square_sums_2 - patch_sums_2 * torch.conj(patch_sums_2) / (self.patch_height*self.patch_width))
 
-        sum_prod_12_arr = self.sum_prod_12_arr_periods[period]
-
-        # print()
-        # print("sum_prod_12_arr", sum_prod_12_arr.shape)
-        # print("self.sum_1_arr", self.sum_1_arr.shape)
-        # print("sum_2_arr", sum_2_arr.shape)
+        sum_prod_12_arr = self.precomputed_correlations[distance]
 
         corrs = torch.abs(
-                (sum_prod_12_arr - self.sum_1_arr * torch.conj(sum_2_arr) / (self.lr*self.lc)) / (self.norm_1_arr+EPS) / (norm_2_arr+EPS) 
+                (sum_prod_12_arr - self.patch_sums * torch.conj(patch_sums_2) / (self.patch_height*self.patch_width)) / (self.patch_norms+EPS) / (patch_norms_2+EPS)
             )
-        
-        return corrs.cpu().numpy()
+
+        return corrs
 
 
-def compute_corr_periods(img_ch, window_ratio, max_period):
+def compute_corr_distances(img_ch, window_ratio, max_distance):
+    """ Compute correlations between patches at different distances for one channel of an image
+
+    Parameters
+    ----------
+    img_ch : np.ndarray
+        Image in one channel, of shape (H, W)
+    window_ratio : float
+        The ratio of patch window w.r.t. image size
+    max_distance : int
+        The maximum distance (included) for detecting abnormal correlation
+    
+    Returns
+    -------
+    np.ndarray
+        Correlations for all distances and all anchor patches from 0 to max_distance, of shape (max_distance+1, nb_windows)
+    """
+
+    assert len(img_ch.shape) == 2, "img_ch should be a 2D array, got shape {}".format(img_ch.shape)
+
     h, w = img_ch.shape[0:2]
     
     u_f = np.fft.fftn(img_ch, axes=(0,1), norm="ortho")
 
-    uf_expand = np.tile(u_f, (3,2)) / (h*w)
+    uf_expand = np.tile(u_f, (2,2))
 
     uf_expand_int = integral_image(uf_expand)
+
     uf2_expand_int = integral_image(uf_expand * np.conjugate(uf_expand)).real
-    corr_periods = []
+    
+    helper = CorrHelper(h, w, uf_expand, uf_expand_int, uf2_expand_int, window_ratio, max_distance)
 
-    helper = CorrHelper(h, w, uf_expand, uf_expand_int, uf2_expand_int, window_ratio, max_period)
+    corr_distances = []
+    for distance in range(0, max_distance+1):
+        corrs = helper.compute_correlations(distance=distance)
+        corr_distances.append(corrs)
+    
+    corr_distances = torch.stack(corr_distances)
+    corr_distances = corr_distances.cpu().numpy()
 
-    for period in range(0, max_period+1):
-        corrs = helper.compute_correlations(period=period)
-        corr_periods.append(corrs)
-
-    corr_periods = np.stack(corr_periods)
-
-    return corr_periods
+    return corr_distances  # (max_distance+1, nb_windows)

@@ -1,8 +1,11 @@
-This folder contains the following methods to extract the residual of an image:
+# Filters
 
-1. dct.py : extract the noise from DCT denoiser
+This folder contains filter implementations for extracting image residuals and applying transformations.
 
-2. total_variation.py : extract the noise from total variation denoiser
+## Contents
 
-3. rank_transform.py : apply rank transform to renormalize an image
-
+- **dct.py** - Implements noise residual extraction using DCT denoising
+- **total_variation.py** - Implements noise residual extraction using total variation denoising
+- **rank_transform.py** - Implements rank transform
+- **phase_transform.py** - Implements phase-only transform
+- **derivative.py** - Implements image derivative filter

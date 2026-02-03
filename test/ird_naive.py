@@ -1,6 +1,7 @@
 # This is a implementation without optimization but easier to understand.
 
 import numpy as np
+import scipy.stats
 
 
 # if JPEG is considered, the n/8 periods need to be ignored. They should not be used to validate a peak period, 
