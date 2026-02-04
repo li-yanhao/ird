@@ -1,8 +1,18 @@
-# Image Resampling Detection via Spectral Correlation and False Alarm Control
+<!-- # Image Resampling Detection via Spectral Correlation and False Alarm Control -->
 
-This repository contains the code for detecting image resampling in the Fourier domain.
+<!-- This repository contains the code for detecting image resampling in the Fourier domain. -->
 
-# Introduction
+
+<div align="center">
+<h2>Image Resampling Detection via Spectral Correlation and False Alarm Control</h2>
+
+[[🔗`GitHub`](https://github.com/li-yanhao/ird)] [[📄`Preprint`](https://doi.org/10.36227/techrxiv.174235422.29936668/v1)] [[🚀`Demo`](https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000537)] [[📊`Dataset`](#)]
+</div>
+
+
+---
+
+## Introduction
 
 Image resampling replicates and folds original frequencies in the Fourier domain. This creates replicated patterns in the Fourier spectrum in a resampled image. For example, the image below is upsampled from 512 x 512 to 666 x 666. Its spectrum after residual extraction (on the right) shows similar patterns in two local patches separated by 144 = 666 - 512 frequencies along the vertical direction.
 
@@ -18,11 +28,6 @@ A non-parametric statistical _a contrario_ framework is thus proposed to detect 
 
 The proposed method is suitable for identifying images resampled with different anti-aliasing filters, scaling factors, classical linear interpolators, and AI-based nonlinear interpolators, and with post-compression at different levels.
 
-🔗 [GitHub](https://github.com/li-yanhao/ird)
-
-📄 [Preprint](https://doi.org/10.36227/techrxiv.174235422.29936668/v1)
-
-🚀 [Demo](https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000537)
 
 
 ## Prerequisite
