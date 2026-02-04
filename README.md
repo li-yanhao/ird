@@ -1,10 +1,5 @@
-<!-- # Image Resampling Detection via Spectral Correlation and False Alarm Control -->
-
-<!-- This repository contains the code for detecting image resampling in the Fourier domain. -->
-
-
 <div align="center">
-<h2>Image Resampling Detection via Spectral Correlation and False Alarm Control</h2>
+<h3>Image Resampling Detection via Spectral Correlation and False Alarm Control</h3>
 
 [[🔗`GitHub`](https://github.com/li-yanhao/ird)] [[📄`Preprint`](https://doi.org/10.36227/techrxiv.174235422.29936668/v1)] [[🚀`Demo`](https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000537)] [[📊`Dataset`](#)]
 </div>
