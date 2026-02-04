@@ -51,10 +51,14 @@ make
 
 ## Test on a single image
 ``` bash
+## Usage:
+detect_one_image.py [-h] [--direction {h,v,both}] [--preproc {rt,tv,dct,phot,none}] [--is_jpeg] [--crop x y w h] [--out_folder OUT_FOLDER] IMAGE_PATH
+
+## Examples:
 # Process detection on an original image without resampling
 python detect_one_image.py img/baboon.png --direction h --preproc rt
 
-# Process detection on a resampled image from 512x512 to 666x666 with bicubic interpolation method
+# Process detection on a resampled image from 512x512 to 666x666
 python detect_one_image.py img/baboon_666.png --direction h --preproc rt
 ```
 
