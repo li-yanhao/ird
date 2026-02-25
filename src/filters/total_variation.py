@@ -33,6 +33,12 @@ def tv_extract_noise(img, lmda:float) -> np.ndarray:
     # call the TV denoiser executable
     current_folder = os.path.dirname(os.path.abspath(__file__))
     EXE = os.path.join(current_folder, "CDS_ChambolleTV/chambolle_ipol")
+    
+    # check if the executable exists
+    if not os.path.isfile(EXE):
+        print(f"\033[91m[Error] External executable '{EXE}' for TV denoiser not found. Please notice that the TV denoiser module is a C++ program that needs to be compiled independly.  Check the README.md for more information.\033[0m")
+        exit(1)
+    
     command = f"{EXE} 4 {input_fname} 10.0 {lmda} noisy.png {output_fname}"
     subprocess.run(command, shell=True)
 
