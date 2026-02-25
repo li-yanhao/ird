@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Image resampling replicates and folds original frequencies in the Fourier domain. This creates replicated patterns in the Fourier spectrum in a resampled image. For example, the image below is upsampled from 512 x 512 to 666 x 666. Its spectrum after residual extraction (on the right) shows similar patterns in two local patches separated by 144 = 666 - 512 frequencies along the vertical direction.
+Image resampling replicates and folds original frequencies in the Fourier domain. This creates replicated patterns in the Fourier spectrum in a resampled image. For example, the image below is upsampled from 512 x 512 to 666 x 666. Its spectrum after residual extraction (on the right) shows similar patterns in two local patches separated by 154 = 666 - 512 frequencies along the vertical direction.
 
 ![](asset/teaser_ird.png)
 
@@ -92,5 +92,5 @@ Detection results will be saved in the `results/` folder by default.
 
 
 ## Choice of preprocessing filter
-For uncompressed images, it is recommended to use the rank transform (`rt`). For JPEG compressed images, using the total variation denoising (`tv`) as preprocessing filter gives slightly better performance.
+For uncompressed images, it is recommended to use the rank transform (`rt`). For JPEG compressed images, using the total variation denoising (`tv`) as preprocessing filter usually gives slightly better performance.
 
