@@ -70,9 +70,6 @@ where:
 - `out_folder`: Folder to save results. By default, results will be saved in the `results/` folder.
 
 
-
-/Users/yli/Downloads/pashmina.jpg
-
 Examples on PNG images:
 ``` bash
 # Process detection on an original PNG image without resampling
