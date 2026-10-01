@@ -94,3 +94,13 @@ Detection results will be saved in the `results/` folder by default.
 ## Choice of preprocessing filter
 For uncompressed images, it is recommended to use the rank transform (`rt`). For JPEG compressed images, using the total variation denoising (`tv`) as preprocessing filter usually gives slightly better performance.
 
+## Citation
+
+```bibtex
+@article{li2026image,
+  title={Image resampling detection via spectral correlation with false alarm control},
+  author={Li, Yanhao and Bammey, Quentin and Gardella, Marina and Nikoukhah, Tina and Von Gioi, Rafael Grompone and Colom, Miguel and Morel, Jean-Michel},
+  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  year={2026},
+  publisher={IEEE}
+}
